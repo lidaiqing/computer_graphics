@@ -1,0 +1,53 @@
+CSC 418 - Assignment 1 Report File
+
+In this file you must:
+
+__________________________________________________________________
+1) Describe *briefly* and *concisely* what parts of the assignment
+   you found easier, harder, and/or tricky to get right
+
+The easier part is to add control panels, and harder one is to draw
+
+boids in 3D. The tricky part is when implementing the rule, it is easy
+
+to forget initialize parameters.
+
+
+__________________________________________________________________
+2) Answer any //QUESTION: items noted in the code
+QUESTION: Is this the optimal way to implement this  rule? can you see any problems or ways to improve this bit?
+No. In this way, we need to calculate the distance for all boids each time we update its position. Actually the center of mass would not change that much for a frame. Maybe we could do some approximation or store distance informations to speed it up.
+QUESTION: Why add inertia at the end and not at the beginning?
+If we add inertia at the beginning, all the update rules are applied based on added inertia velocity. However, we should update based on current velocity instead of added version.
+
+
+
+__________________________________________________________________
+3) Describe any //CRUNCHY: extensions you implemented
+
+
+
+
+
+__________________________________________________________________
+
+4) Briefly comment on the following:
+
+a) What is the time complexity of the boid update (in big Oh notation),
+   justify.
+   O(n). For each update, we need to calculate all other boids' distance if we consider distance calculation takes constant time.
+b) What could you do to make the update more efficient?
+   We can keep track of which boids are within the distance to the current boid.
+c) What is the greatest bottleneck of the program:
+
+    Is it the boid update code?
+    Or is it the boid display code?
+
+    Why is that? justify your answer.
+    I think it is boid update. Boid display is constant for each draw but update needs O(n) time to do calculation.
+d) How would you adapt the idea behind Boids to swarms of running
+   creatures (e.g. a herd of charging animals, an army of CGI
+   monsters, a crowd of simulated humans walking). Think of the
+   specific conditions you would need to add to the simulation
+   that are different from your Boids implementation
+
