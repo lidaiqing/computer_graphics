@@ -24,7 +24,7 @@ If we add inertia at the beginning, all the update rules are applied based on ad
 
 __________________________________________________________________
 3) Describe any //CRUNCHY: extensions you implemented
-
+I add a new feature about leaders. I randomly select 3 leaders and for every random update, it searches the closest leader in the list and update its velocity to fly toward it. 
 
 
 
@@ -50,4 +50,4 @@ d) How would you adapt the idea behind Boids to swarms of running
    monsters, a crowd of simulated humans walking). Think of the
    specific conditions you would need to add to the simulation
    that are different from your Boids implementation
-
+   Depends on the natural of the creatures, they might have different actions and rules for movement. For example, humans have their own walking style and they are more organized comparing to the walking of monsters. Another thing is about the reaction to the environment. For example, if it is raining, simulation should display the reaction for creatures under such environment.

@@ -408,8 +408,8 @@ void WindowReshape(int w, int h)
 
     // The line below specifies the position and orientation of the
     // camera, as well as the direction it's pointing at.
-    //gluLookAt(125 * cos(global_rot * PI / 180.0), 75 * sin(global_rot * PI / 180.0) ,100,0,0,0,0,1,0);
-	gluLookAt(-100, -100, 100, 0, 0, 0, 0, 1, 0);
+    gluLookAt(150 * sin(global_rot * PI / 180.0), 75, 150 * cos(global_rot * PI / 180.0),0,0,0,0,1,0);
+//	gluLookAt(-100, 75, -100, 0, 0, 0, 0, 1, 0);
     // The first three parameters are the camera's X,Y,Z location
     // The next three specify the (x,y,z) position of a point
     // the camera is looking at.
@@ -1073,28 +1073,28 @@ void drawBoid(int i)
  glPushMatrix();	// Save current transformation matrix
 			// Apply necessary transformations to this boid
   glTranslatef(Boid_Location[i][0],Boid_Location[i][1],Boid_Location[i][2]);
-  gluCylinder(my_quad,2,4,5,40,40);	// Draw this boid
+  gluCylinder(my_quad,1,2,2.5,40,40);	// Draw this boid
  glPopMatrix();
 // draw neck
  glPushMatrix();
-  glTranslatef(Boid_Location[i][0],Boid_Location[i][1],Boid_Location[i][2] + 5);
-  gluDisk(my_quad,2,5,40,40);
+  glTranslatef(Boid_Location[i][0],Boid_Location[i][1],Boid_Location[i][2] + 2.5);
+  gluDisk(my_quad,1,2.5,40,40);
  glPopMatrix();		// Restore transformation matrix so it's
 			// ready for the next boid.
 // draw head
  glPushMatrix();
-  glTranslatef(Boid_Location[i][0],Boid_Location[i][1],Boid_Location[i][2] + 6);
-  gluSphere(my_quad,2,40,40);
+  glTranslatef(Boid_Location[i][0],Boid_Location[i][1],Boid_Location[i][2] + 3);
+  gluSphere(my_quad,1,40,40);
  glPopMatrix();
 
 // draw fins
  glPushMatrix();
-  glTranslatef(Boid_Location[i][0]+2,Boid_Location[i][1],Boid_Location[i][2] + 3);
-  gluPartialDisk(my_quad,0,5,40,40,0,90);
+  glTranslatef(Boid_Location[i][0]+1,Boid_Location[i][1],Boid_Location[i][2] + 1.5);
+  gluPartialDisk(my_quad,0,2.5,40,40,0,90);
  glPopMatrix();
  glPushMatrix();
-  glTranslatef(Boid_Location[i][0]-2,Boid_Location[i][1],Boid_Location[i][2] + 3);
-  gluPartialDisk(my_quad,0,5,40,40,0,90);
+  glTranslatef(Boid_Location[i][0]-1,Boid_Location[i][1],Boid_Location[i][2] + 1.5);
+  gluPartialDisk(my_quad,0,2.5,40,40,0,90);
  glPopMatrix();
 /////////////////////////////////////////
  // CRUNCHY:
