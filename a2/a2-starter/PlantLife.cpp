@@ -310,6 +310,24 @@ void RenderPlant(struct PlantNode *p)
  ////////////////////////////////////////////////////////////
 
  if (p==NULL) return;		// Avoid crash if called with empty node
+ if (p->type == 'a' || p->type == 'b') {
+   RenderPlant(p->left);
+   RenderPlant(p->right);
+ }
+ else if (p->type == 'c') {
+   glPushMatrix();
+   LeafSection();
+   glPopMatrix();
+ }
+ else if (p->type == 'd') {
+   glPushMatrix();
+   FlowerSection();
+   glPopMatrix();
+ }
+ else {
+   glPushMatrix();
+   StemSection();
+   glPopMatrix();
 }
 
 void StemSection(void)
@@ -529,7 +547,7 @@ struct PlantNode *MakePlant(void)
   //
   // The probabilities for transitions are parameters to
   // the function so that you can generate different
-  // types of plants. 
+  // types of plants.
   //
   // NOTE: The transition probabilities from a *MUST*
   // add up to 1. The transition probabilities from
@@ -538,12 +556,12 @@ struct PlantNode *MakePlant(void)
   // generation process, you can not guarantee the plant
   // will have the specified numer of levels!
   //
-  // If you add your own node types, you will have to 
+  // If you add your own node types, you will have to
   // update the generation rules, and add appropriate
   // parameters to determine transition probabilities
   // for any additional components.
   //
-  // Finally, the random number seed is set in main(), 
+  // Finally, the random number seed is set in main(),
   // but could be made an input parameter to obtain more
   // random behaviour.
 
@@ -556,7 +574,7 @@ struct PlantNode *MakePlant(void)
   p_root->scl=.8+(.2*drand48());                                 // Initial scale (defines the size
                                                                  // of the largest component).
   p_root->left=NULL;
-  p_root->left=NULL;
+  p_root->right=NULL;
 
   // Generative part, use the laws above to generate up to two children for each node in the tree
   GenerateRecursivePlant(p_root,1);  // Level 0 is the root, next level is 1
@@ -569,7 +587,7 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
   // if level>n_levels, stop.
   float dice;
   struct PlantNode *q, *r;
-  
+
   q=r=NULL;
 
   if (p==NULL) return;                     // Reached a terminal
@@ -586,7 +604,55 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
    //        nodes to the plant tree. This is implemented below
    //        for 'b' type nodes, and you can look at that code
    //        to give you an idea how the process works.
-   ///////////////////////////////////////////////////////////// 
+   /////////////////////////////////////////////////////////////
+   // Generate two nodes for either left or right
+   // a -> aa with p = Paaa
+   // a -> ab with p = Paab
+   // a -> ac with p = Paac
+   // a -> ad with p = Paad
+   // a -> cd with p = Pacd
+   q=(struct PlantNode *)calloc(1,sizeof(struct PlantNode));
+   q->x_ang=drand48()*X_angle;
+   q->z_ang=drand48()*Z_angle;
+   q->scl=scale_mult;
+   q->left=NULL;
+   q->right=NULL;
+   r=(struct PlantNode *)calloc(1,sizeof(struct PlantNode));
+   r->x_ang=drand48()*X_angle;
+   r->z_ang=drand48()*Z_angle;
+   r->scl=scale_mult;
+   r->left=NULL;
+   r->right=NULL;
+
+   if (dice<=Paaa)
+     {
+       // Selected rule a -> aa
+       q->type='a';
+       r->type='a';
+     }
+   else if (dice<=(Paaa + Paab))
+     {
+       // Selected rule a -> ab
+       q->type='a'
+       r->type='b';
+     }
+   else if (dice<=(Paaa + Paab + Paac))
+     {
+       // Selected rule a -> ac
+       q->type='a'
+       r->type='c';
+     }
+    else if (dice<=(Paaa + Paab + Paac))
+       {
+         // Selected rule a -> ad
+         q->type='a'
+         r->type='d';
+       }
+    else
+    {
+      q->type = 'c';
+      r->type = 'd';
+    }
   }
   else if (p->type=='b')
   {
@@ -737,7 +803,7 @@ int main(int argc, char** argv)
     //        the corresponding location in the surface grid.
     //////////////////////////////////////////////////////////////
 
-    // Intialize global transformation variables and GLUI    
+    // Intialize global transformation variables and GLUI
     global_Z=0;
     global_scale=15;
     ImGui_ImplGlut_Init(false);
@@ -765,7 +831,7 @@ void initGlut(char* winName)
     windowID = glutCreateWindow(winName);
 
     // Setup callback functions to handle events
-    glutReshapeFunc(WindowReshape);   
+    glutReshapeFunc(WindowReshape);
     glutDisplayFunc(WindowDisplay);
     glutMouseFunc(MouseClick);
     glutMotionFunc(MotionFunc);
@@ -898,9 +964,9 @@ void drawAxisLines(void)
 // Main drawing function. Callback for scene display
 void WindowDisplay(void)
 {
-    static int Opening_animation=0;    
+    static int Opening_animation=0;
 //    static int Opening_animation=1;	// Comment the line above and uncomment this line
-                                        // if you implemented the plant growing animation.    
+                                        // if you implemented the plant growing animation.
 
     // Clear colour buffer and Z-buffer
     glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
@@ -933,7 +999,7 @@ void WindowDisplay(void)
 
     ////////////////////////////////////////////////////////////////
     // CRUNCHY: Write a function to animate the plants as they grow.
-    //          this function should be called 
+    //          this function should be called
     //
     //          AnimatedRenderPlant()
     //
@@ -979,7 +1045,7 @@ void WindowDisplay(void)
     //     a) and b) are not mutually exclusive. More crunchy
     //     means more bonus!
     //
-    //    If you are implementing this and get stuck, come and 
+    //    If you are implementing this and get stuck, come and
     //     talk to me.
     ///////////////////////////////////////////////////////////////
 
