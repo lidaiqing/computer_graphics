@@ -47,7 +47,7 @@ Program Code V3.0: F. Estrada, Sep 2012.
 #include <unistd.h>
 
 #define MAX_PLANTS 25		// Maximum number of plants for plant forests
-#define GRID_RESOLVE 64		// Size of the surface grid
+#define GRID_RESOLVE 65		// Size of the surface grid
 /******************************************************************************
   Data structures section
 *******************************************************************************/
@@ -109,6 +109,7 @@ GLint n_levels;       // Number of levels of branching in the plant
 GLint n_plants;	      // Number of plants in a plant forest in [1,MAX_PLANTS]
 
 // Transition probabilities for the L-system specification
+GLfloat Paaa;
 GLfloat Paab;
 GLfloat Paac;
 GLfloat Paad;
@@ -187,7 +188,6 @@ void computeNormal(double *vx, double *vy, double *vz, double wx, double wy, dou
  wx/=len;
  wy/=len;
  wz/=len;
-et
  nx=((*vy)*wz)-(wy*(*vz));
  ny=(wx*(*vz))-((*vx)*wz);
  nz=((*vx)*wy)-(wx*(*vy));
@@ -212,8 +212,78 @@ void RenderSurfaceGrid(void)
  //       Don't forget to specify the normal at each vertex. Otherwise
  //       your surface won't be properly illuminated
  /////////////////////////////////////////////////////////////////////////
+	//glColor3f(drand48(), drand48(), drand48());
+	for (int i = 0; i < GRID_RESOLVE - 1; i++)
+	{
+		for (int j = 0; j < GRID_RESOLVE - 1; j++)
+		{
+			glColor3f(1,1,1.0);
+			//glColor3f(fabs(GroundXYZ[i][j][2]) / 4.0, fabs(GroundXYZ[i][j][2]) / 8.0, fabs(GroundXYZ[i][j][2]) / 4.0);
+			glBegin(GL_QUADS);
+				glNormal3f(GroundNormals[i][j][0], GroundNormals[i][j][1], GroundNormals[i][j][2]);
+				glVertex3f(GroundXYZ[i][j][0], GroundXYZ[i][j][1], GroundXYZ[i][j][2]);
+				glVertex3f(GroundXYZ[i][j+1][0], GroundXYZ[i][j+1][1], GroundXYZ[i][j+1][2]);
+				glVertex3f(GroundXYZ[i+1][j+1][0], GroundXYZ[i+1][j+1][1], GroundXYZ[i+1][j+1][2]);
+				glVertex3f(GroundXYZ[i+1][j][0], GroundXYZ[i+1][j][1], GroundXYZ[i+1][j][2]);
+				//glVertex3f(GroundXYZ[i][j][0], GroundXYZ[i][j][1], GroundXYZ[i][j][2]);
+				//glVertex3f(GroundXYZ[i+1][j][0], GroundXYZ[i+1][j][1], GroundXYZ[i+1][j][2]);
+				//glVertex3f(GroundXYZ[i+1][j+1][0], GroundXYZ[i+1][j+1][1], GroundXYZ[i+1][j+1][2]);
+			glEnd();
+		}
+	}
 }
 
+double getRand(double dMin, double dMax)
+{
+	double d = (double)rand() / RAND_MAX;
+	return dMin + d * (dMax - dMin);
+}
+
+void squareStep(int sL, int hS, int range)
+{
+	for (int x = 0; x < GRID_RESOLVE - 1; x += sL)
+	{
+		for (int y = 0; y < GRID_RESOLVE - 1; y += sL)
+		{
+			double avg = GroundXYZ[x][y][2] + GroundXYZ[x+sL][y][2] + GroundXYZ[x][y+sL][2] + GroundXYZ[x+sL][y+sL][2];
+			avg /= 4.0;
+			GroundXYZ[x+hS][y+hS][2] = avg + getRand(-range, range);
+		}
+	}
+}
+
+void diamondStep(int sL, int hS, int range)
+{
+	for (int x = 0; x < GRID_RESOLVE - 1; x += hS)
+	{
+		for (int y = (x + hS) % sL; y < GRID_RESOLVE - 1; y += sL)
+		{
+			double avg = GroundXYZ[(x - hS + GRID_RESOLVE - 1) % (GRID_RESOLVE - 1)][y][2] + 
+					GroundXYZ[(x + hS) % (GRID_RESOLVE - 1)][y][2] + 
+						GroundXYZ[x][(y + hS) % (GRID_RESOLVE - 1)][2] + 
+							GroundXYZ[x][(y - hS + GRID_RESOLVE - 1) % (GRID_RESOLVE - 1)][2];
+			avg /= 4.0 + getRand(-range, range);
+			GroundXYZ[x][y][2] = avg;
+			if (x == 0) GroundXYZ[GRID_RESOLVE-1][y][2] = avg;
+			if (y == 0) GroundXYZ[x][GRID_RESOLVE-1][2] = avg;
+		}
+	}
+}
+
+void MakeSurfaceGridHelper(void)
+{
+	GroundXYZ[0][0][2] = GroundXYZ[0][GRID_RESOLVE-1][2] = GroundXYZ[GRID_RESOLVE-1][0][2] = GroundXYZ[GRID_RESOLVE-1][GRID_RESOLVE-1][2] = 3;
+	srand(time(NULL));
+	int range = 3;
+	for (int sL = GRID_RESOLVE - 1; sL >= 2; sL /= 2, range /= 2)
+	{
+		int hS = sL / 2;
+		
+		squareStep(sL, hS, range);
+		diamondStep(sL, hS, range);
+	}
+}
+	
 void MakeSurfaceGrid(void)
 {
  // Generate an interesting surface to place the plants on
@@ -254,7 +324,8 @@ void MakeSurfaceGrid(void)
    GroundXYZ[i][j][1]=(-side*.5)+(j*(side/GRID_RESOLVE));
    GroundXYZ[i][j][2]=0;	// <----- HERE you must define surface height in some smart way!
   }
-
+  MakeSurfaceGridHelper();
+ 
  // Compute normals at each vertex
  // Remember we talked about how to compute the normal for a triangle in lecture. You
  // can do the same thing here.
@@ -262,18 +333,25 @@ void MakeSurfaceGrid(void)
  // NOTE: Be careful with indexing along the borders of the surface grid! you will
  //       run into all sorts of problems if you don't think carefully what you're
  //       doing.
- for (int i=0; i<GRID_RESOLVE; i++)
-  for (int j=0; j<GRID_RESOLVE; j++)
+ for (int i=0; i<GRID_RESOLVE-1; i++)
+  for (int j=0; j<GRID_RESOLVE-1; j++)
   {
    // Obtain two vectors on the surface the point at GroundXYZ[i][j][] is located
+   vx = GroundXYZ[i+1][j][0] - GroundXYZ[i][j][0];
+   vy = GroundXYZ[i+1][j][1] - GroundXYZ[i][j][1];
+   vz = GroundXYZ[i+1][j][2] - GroundXYZ[i][j][2];
+
+   wx = GroundXYZ[i][j+1][0] - GroundXYZ[i][j][0];
+   wy = GroundXYZ[i][j+1][1] - GroundXYZ[i][j][1];
+   wz = GroundXYZ[i][j+1][2] - GroundXYZ[i][j][2];
 
    // Then compute the normal
    computeNormal(&vx,&vy,&vz,wx,wy,wz);
 
    // And store it...
-   GroundNormals[i][j][0]=0;    // <----- HEY!
-   GroundNormals[i][j][1]=0;    // <----- REPLACE THESE COMPONENTS with the correct
-   GroundNormals[i][j][2]=1;    // <----- normal for your surface!
+   GroundNormals[i][j][0]=vx;    // <----- HEY!
+   GroundNormals[i][j][1]=vy;    // <----- REPLACE THESE COMPONENTS with the correct
+   GroundNormals[i][j][2]=vz;    // <----- normal for your surface!
   }
 }
 
@@ -311,23 +389,36 @@ void RenderPlant(struct PlantNode *p)
 
  if (p==NULL) return;		// Avoid crash if called with empty node
  if (p->type == 'a' || p->type == 'b') {
+   glPushMatrix(); 
+   glRotatef(p->z_ang, 0, 0 ,1);
+   glRotatef(p->x_ang, 1, 0, 0);
+   StemSection();
+   glScalef(p->scl, p->scl, p->scl);
+   glTranslatef(0,0,1.0);
    RenderPlant(p->left);
+   glPopMatrix();
+   glPushMatrix();
+   glRotatef(p->z_ang, 0, 0, 1);
+   glRotatef(p->x_ang, 1, 0, 0);
+   StemSection();
+   glScalef(p->scl, p->scl, p->scl);
+   glTranslatef(0,0,1.0);
    RenderPlant(p->right);
+   glPopMatrix();
  }
  else if (p->type == 'c') {
+   return;
    glPushMatrix();
    LeafSection();
    glPopMatrix();
  }
  else if (p->type == 'd') {
+   return;
    glPushMatrix();
    FlowerSection();
    glPopMatrix();
  }
- else {
-   glPushMatrix();
-   StemSection();
-   glPopMatrix();
+ 
 }
 
 void StemSection(void)
@@ -339,7 +430,7 @@ void StemSection(void)
   // Create a quadrics object to make the stem
   GLUquadric *quadObject;
   quadObject=gluNewQuadric();
-
+  glColor3f(0.25,1,0.1);
   gluCylinder(quadObject,.05,.04,1,10,10);
 
   // Destroy our quadrics object
@@ -623,29 +714,27 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
    r->scl=scale_mult;
    r->left=NULL;
    r->right=NULL;
-
    if (dice<=Paaa)
      {
-       // Selected rule a -> aa
-       q->type='a';
-       r->type='a';
+	q->type='a';
+	r->type='a';
      }
-   else if (dice<=(Paaa + Paab))
+   if (dice<=(Paaa + Paab))
      {
        // Selected rule a -> ab
-       q->type='a'
+       q->type='a';
        r->type='b';
      }
    else if (dice<=(Paaa + Paab + Paac))
      {
        // Selected rule a -> ac
-       q->type='a'
+       q->type='a';
        r->type='c';
      }
-    else if (dice<=(Paaa + Paab + Paac))
+    else if (dice<=(Paaa + Paab + Paac + Paad))
        {
          // Selected rule a -> ad
-         q->type='a'
+         q->type='a';
          r->type='d';
        }
     else
@@ -708,8 +797,8 @@ int main(int argc, char** argv)
  */
 
     // Process program arguments
-    if(argc != 15) {
-        printf("Usage: PlantLife n_plants n_levels X_angle Z_angle scale_mult Paab Paac Paad Pacd Pba Pbc Pbd width height\n");
+    if(argc != 16) {
+        printf("Usage: PlantLife n_plants n_levels X_angle Z_angle scale_mult Paaa Paab Paac Paad Pacd Pba Pbc Pbd width height\n");
         exit(1);
     } else {
         n_plants=atoi(argv[1]);
@@ -717,15 +806,16 @@ int main(int argc, char** argv)
         X_angle=atof(argv[3]);
         Z_angle=atof(argv[4]);
         scale_mult=atof(argv[5]);
-        Paab=atof(argv[6]);
-        Paac=atof(argv[7]);
-        Paad=atof(argv[8]);
-        Pacd=atof(argv[9]);
-        Pba=atof(argv[10]);
-        Pbc=atof(argv[11]);
-        Pbd=atof(argv[12]);
-        Win[0] = atoi(argv[13]);
-        Win[1] = atoi(argv[14]);
+	Paaa=atof(argv[6]);
+        Paab=atof(argv[7]);
+        Paac=atof(argv[8]);
+        Paad=atof(argv[9]);
+        Pacd=atof(argv[10]);
+        Pba=atof(argv[11]);
+        Pbc=atof(argv[12]);
+        Pbd=atof(argv[13]);
+        Win[0] = atoi(argv[14]);
+        Win[1] = atoi(argv[15]);
 
         // Enforce bounds on input variables
         if (n_plants>=MAX_PLANTS) n_plants=MAX_PLANTS;
@@ -738,10 +828,11 @@ int main(int argc, char** argv)
         if (Z_angle>360) Z_angle=360;
         if (scale_mult<.75) scale_mult=.75;
         if (scale_mult>.99) scale_mult=.99;
-	Paab=Paab/(Paab+Paac+Paad+Pacd);
-	Paac=Paac/(Paab+Paac+Paad+Pacd);
-	Paad=Paad/(Paab+Paac+Paad+Pacd);
-	Pacd=Pacd/(Paab+Paac+Paad+Pacd);
+	Paaa=Paaa/(Paaa+Paab+Paac+Paad+Pacd);
+	Paab=Paab/(Paaa+Paab+Paac+Paad+Pacd);
+	Paac=Paac/(Paaa+Paab+Paac+Paad+Pacd);
+	Paad=Paad/(Paaa+Paab+Paac+Paad+Pacd);
+	Pacd=Pacd/(Paaa+Paab+Paac+Paad+Pacd);
         Pba=Pba/(Pba+Pbc+Pbd);
         Pbc=Pbc/(Pba+Pbc+Pbd);
         Pbd=Pbd/(Pba+Pbc+Pbd);
@@ -795,14 +886,25 @@ int main(int argc, char** argv)
 
     // Make a plant forest!
     for (int i=0;i<n_plants;i++)
-     PlantForest[i]=MakePlant();
+    {
+	PlantForest[i]=MakePlant();
+//	PrintPlant(PlantForest[i]);
+    }
 
     //////////////////////////////////////////////////////////////
     // TO DO: Set the locations of the plants in the plant forest
     //        randomly in X,Y, but at the correct height for
     //        the corresponding location in the surface grid.
     //////////////////////////////////////////////////////////////
-
+     
+    for (int i = 0; i < n_plants; i++)
+    {
+	int ii = drand48() * GRID_RESOLVE;
+	int jj = drand48() * GRID_RESOLVE;
+	ForestXYZ[i][0] = GroundXYZ[ii][jj][0];
+	ForestXYZ[i][1] = GroundXYZ[ii][jj][1];
+	ForestXYZ[i][2] = GroundXYZ[ii][jj][2];
+    }
     // Intialize global transformation variables and GLUI
     global_Z=0;
     global_scale=15;
