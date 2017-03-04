@@ -45,7 +45,7 @@ Program Code V3.0: F. Estrada, Sep 2012.
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
-
+#include <algorithm>
 #define MAX_PLANTS 25		// Maximum number of plants for plant forests
 #define GRID_RESOLVE 65		// Size of the surface grid
 /******************************************************************************
@@ -70,6 +70,9 @@ struct PlantNode{
   struct PlantNode *right;    // Right child for this node (NULL means the node is a terminal)
 
   // QUESTION: We don't have a translation component... WHY?
+	/*
+	We don't need translation component since we draw tree recursively and put matrix om stack
+ 	*/
 
   // NOTE: We don't have pointers to the parents. Make sure your drawing function knows what
   // it's doing!
@@ -213,21 +216,40 @@ void RenderSurfaceGrid(void)
  //       your surface won't be properly illuminated
  /////////////////////////////////////////////////////////////////////////
 	//glColor3f(drand48(), drand48(), drand48());
+	float maxZ = -10;
+	for (int i = 0; i < GRID_RESOLVE; i++)
+		for (int j = 0; j < GRID_RESOLVE; j++)
+			maxZ = std::max(maxZ, GroundXYZ[i][j][2]);
 	for (int i = 0; i < GRID_RESOLVE - 1; i++)
 	{
 		for (int j = 0; j < GRID_RESOLVE - 1; j++)
 		{
-			glColor3f(1,1,1.0);
+			glColor3f(.7 - GroundXYZ[i][j][2] / maxZ, 0.2,.8 - fabs(GroundXYZ[i][j][2]) / maxZ);
 			//glColor3f(fabs(GroundXYZ[i][j][2]) / 4.0, fabs(GroundXYZ[i][j][2]) / 8.0, fabs(GroundXYZ[i][j][2]) / 4.0);
-			glBegin(GL_QUADS);
+			glBegin(GL_TRIANGLES);
 				glNormal3f(GroundNormals[i][j][0], GroundNormals[i][j][1], GroundNormals[i][j][2]);
 				glVertex3f(GroundXYZ[i][j][0], GroundXYZ[i][j][1], GroundXYZ[i][j][2]);
 				glVertex3f(GroundXYZ[i][j+1][0], GroundXYZ[i][j+1][1], GroundXYZ[i][j+1][2]);
+				//glVertex3f(GroundXYZ[i+1][j+1][0], GroundXYZ[i+1][j+1][1], GroundXYZ[i+1][j+1][2]);
+				glVertex3f(GroundXYZ[i+1][j][0], GroundXYZ[i+1][j][1], GroundXYZ[i+1][j][2]);
+			glEnd();
+			// Obtain two vectors on the surface the point at GroundXYZ[i][j][] is located
+   			double wx = GroundXYZ[i+1][j][0] - GroundXYZ[i+1][j+1][0];
+   			double wy = GroundXYZ[i+1][j][1] - GroundXYZ[i+1][j+1][1];
+   			double wz = GroundXYZ[i+1][j][2] - GroundXYZ[i+1][j+1][2];
+
+   			double vx = GroundXYZ[i][j+1][0] - GroundXYZ[i+1][j+1][0];
+   			double vy = GroundXYZ[i][j+1][1] - GroundXYZ[i+1][j+1][1];
+   			double vz = GroundXYZ[i][j+1][2] - GroundXYZ[i+1][j+1][2];
+
+  		 	// Then compute the normal
+   			computeNormal(&vx,&vy,&vz,wx,wy,wz);
+
+			glBegin(GL_TRIANGLES);
+				glNormal3f(vx, vy, vz);
+				glVertex3f(GroundXYZ[i][j+1][0], GroundXYZ[i][j+1][1], GroundXYZ[i][j+1][2]);
 				glVertex3f(GroundXYZ[i+1][j+1][0], GroundXYZ[i+1][j+1][1], GroundXYZ[i+1][j+1][2]);
 				glVertex3f(GroundXYZ[i+1][j][0], GroundXYZ[i+1][j][1], GroundXYZ[i+1][j][2]);
-				//glVertex3f(GroundXYZ[i][j][0], GroundXYZ[i][j][1], GroundXYZ[i][j][2]);
-				//glVertex3f(GroundXYZ[i+1][j][0], GroundXYZ[i+1][j][1], GroundXYZ[i+1][j][2]);
-				//glVertex3f(GroundXYZ[i+1][j+1][0], GroundXYZ[i+1][j+1][1], GroundXYZ[i+1][j+1][2]);
 			glEnd();
 		}
 	}
@@ -272,9 +294,9 @@ void diamondStep(int sL, int hS, int range)
 
 void MakeSurfaceGridHelper(void)
 {
-	GroundXYZ[0][0][2] = GroundXYZ[0][GRID_RESOLVE-1][2] = GroundXYZ[GRID_RESOLVE-1][0][2] = GroundXYZ[GRID_RESOLVE-1][GRID_RESOLVE-1][2] = 3;
+	GroundXYZ[0][0][2] = GroundXYZ[0][GRID_RESOLVE-1][2] = GroundXYZ[GRID_RESOLVE-1][0][2] = GroundXYZ[GRID_RESOLVE-1][GRID_RESOLVE-1][2] = 1.5;
 	srand(time(NULL));
-	int range = 3;
+	int range = 3.5;
 	for (int sL = GRID_RESOLVE - 1; sL >= 2; sL /= 2, range /= 2)
 	{
 		int hS = sL / 2;
@@ -393,7 +415,7 @@ void RenderPlant(struct PlantNode *p)
    glRotatef(p->z_ang, 0, 0 ,1);
    glRotatef(p->x_ang, 1, 0, 0);
    StemSection();
-   glScalef(p->scl, p->scl, p->scl);
+   //glScalef(p->scl, p->scl, p->scl);
    glTranslatef(0,0,1.0);
    RenderPlant(p->left);
    glPopMatrix();
@@ -401,21 +423,36 @@ void RenderPlant(struct PlantNode *p)
    glRotatef(p->z_ang, 0, 0, 1);
    glRotatef(p->x_ang, 1, 0, 0);
    StemSection();
-   glScalef(p->scl, p->scl, p->scl);
+   //glScalef(p->scl, p->scl, p->scl);
    glTranslatef(0,0,1.0);
    RenderPlant(p->right);
    glPopMatrix();
  }
  else if (p->type == 'c') {
-   return;
    glPushMatrix();
-   LeafSection();
+	glRotatef(p->z_ang, 0, 0, 1);
+	glRotatef(p->x_ang, 1, 0, 0);
+   	glRotatef(-45, 1, 0, 0);
+	//glScalef(p->scl, p->scl, p->scl);
+   	LeafSection();
    glPopMatrix();
+   /*glPushMatrix();
+	glRotatef(p->z_ang, 0, 0, 1);
+	glRotatef(p->x_ang, 1, 0, 0);
+	glRotatef(180, 0, 0, 1);
+  	glTranslatef(0.5, 0.5, 0);
+	glRotatef(-45,1,0,0);
+	glScalef(p->scl*0.5, p->scl*0.5, p->scl*0.5);
+	LeafSection();
+   glPopMatrix();*/
  }
  else if (p->type == 'd') {
-   return;
    glPushMatrix();
-   FlowerSection();
+	glRotatef(p->z_ang, 0, 0, 1);
+	glRotatef(p->x_ang, 1, 0, 0);
+ 	glRotatef(45, 1, 0, 0);
+	glScalef(p->scl, p->scl, p->scl);
+   	FlowerSection();
    glPopMatrix();
  }
  
@@ -432,7 +469,7 @@ void StemSection(void)
   quadObject=gluNewQuadric();
   glColor3f(0.25,1,0.1);
   gluCylinder(quadObject,.05,.04,1,10,10);
-
+  glColor3f(1,1,1);
   // Destroy our quadrics object
   gluDeleteQuadric(quadObject);
 }
@@ -441,10 +478,10 @@ void LeafSection(void)
 {
  // Draws a single leaf, along the current local Z axis
  // Note that we draw a little stem before the actual leaf.
- glColor3f(.25,1,.1);
+ //glColor3f(.25,1,.1);
  StemSection();
  // Perhaps you should translate now? :)
-
+ glTranslatef(0.0, 0.0, 1.0);
  ////////////////////////////////////////////////////////////
  // TO DO: Draw your own leaf design.
  //        It should be aligned with the current Z
@@ -477,13 +514,13 @@ void LeafSection(void)
  //          simpler than defining a very complex, non-textured
  //          leaf.
  ////////////////////////////////////////////////////////////
-
  // Enable texture mapping if needed (see main() to enable texturing)
  if (textures_on)
  {
   glEnable(GL_TEXTURE_2D);
   // Enable Alpha-blending
   glEnable (GL_BLEND);
+  glActiveTexture(GL_TEXTURE0);
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_CULL_FACE);
   glBindTexture(GL_TEXTURE_2D,l_texture);
@@ -497,7 +534,20 @@ void LeafSection(void)
  ///////////////////////////////////////////////////////////
  // DO YOUR DRAWING WORK HERE!!!!
  ///////////////////////////////////////////////////////////
+	glBegin(GL_QUADS);
+		glNormal3f(0, 0, 1);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3f(1, -1, 0);
 
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3f(1, 1, 0);
+		
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3f(-1, 1, 0);
+		
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3f(-1.0f, -1.0f, 0);
+	glEnd();
  // Disable texture mapping
  if (textures_on)
  {
@@ -532,13 +582,14 @@ void FlowerSection()
  //          Should be easy if you already texture mapped
  //          the leaves.
  /////////////////////////////////////////////////////////////
-
+ //glColor4f(1,1,1,1);
  // Enable texture mapping (you must also enable it in main()! )
  if (textures_on)
  {
   glEnable(GL_TEXTURE_2D);
   // Enable Alpha-blending
   glEnable (GL_BLEND);
+  glActiveTexture(GL_TEXTURE0);
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_CULL_FACE);
   glBindTexture(GL_TEXTURE_2D,p_texture);
@@ -552,7 +603,20 @@ void FlowerSection()
  /////////////////////////////////////////////////////////////
  // DO YOUR DRAWING WORK HERE!!
  /////////////////////////////////////////////////////////////
+	glBegin(GL_QUADS);
+		glNormal3f(0, 0, 1);
+		glTexCoord2f(0.0f, 0.0f);
+		glVertex3f(1, -1, 0);
 
+		glTexCoord2f(1.0f, 0.0f);
+		glVertex3f(1, 1, 0);
+		
+		glTexCoord2f(1.0f, 1.0f);
+		glVertex3f(-1, 1, 0);
+		
+		glTexCoord2f(0.0f, 1.0f);
+		glVertex3f(-1.0f, -1.0f, 0);
+	glEnd();
  // Disable texture mapping
  if (textures_on)
  {
@@ -682,7 +746,10 @@ void GenerateRecursivePlant(struct PlantNode *p, int level)
   q=r=NULL;
 
   if (p==NULL) return;                     // Reached a terminal
-  if (level>=n_levels) return;             // Reached maximum plant height
+  if (level>=n_levels) {
+	p->type = 'd';
+	return;             // Reached maximum plant height
+  }
   if (p->type=='c'||p->type=='d') return;  // c and d type nodes are terminal nodes as well
 
   dice=drand48();           // Roll the dice...
@@ -856,7 +923,7 @@ int main(int argc, char** argv)
         //           submit your texture images along
         //           with your completed code.
         ////////////////////////////////////////////////
-	textures_on=0;		// Set to 1 to enable texturing
+	textures_on=1;		// Set to 1 to enable texturing
         if (textures_on)
         {
 	 leaf_texture=readPPM("leaf_texture_image.ppm",&l_sx,&l_sy);	// Evidently, you must change this to be
@@ -958,7 +1025,7 @@ void initGlut(char* winName)
      glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
      glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, l_sx, l_sy, 0, GL_RGBA, GL_UNSIGNED_BYTE, leaf_texture);
 
-     glGenTextures( 1, &p_texture);
+     glGenTextures(1, &p_texture);
      glBindTexture( GL_TEXTURE_2D, p_texture);
 
      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -1013,7 +1080,9 @@ void setupUI()
     //        global_Z must be in [-180, 180]
     //        global_scale must be in [0, 20]
     ///////////////////////////////////////////////////////////
-
+    ImGui::SliderFloat("global_z", &global_Z, -180.0f, 180.0f);
+    ImGui::SliderFloat("global_scale", &global_scale, 0.0f, 20.0f);
+    
     ImGui::SetWindowFocus();
         ImGui::ColorEdit3("clear color", (float*)&clear_color);
 
