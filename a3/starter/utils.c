@@ -70,6 +70,10 @@ inline void rayTransform(struct ray3D *ray_orig, struct ray3D *ray_transformed, 
  ///////////////////////////////////////////
  // TO DO: Complete this function
  ///////////////////////////////////////////
+    ray_transformed = newRay(ray_orig->p0, ray_orig->d); // copy ray_orig to ray_transformed
+    // transform ray by obj's inverse matrix
+    matVecMult(obj->Tinv, ray_transformed->p0);
+    matVecMult(obj->Tinv, ray_transformed->d);
 }
 
 inline void normalTransform(struct point3D *n_orig, struct point3D *n_transformed, struct object3D *obj)
@@ -177,6 +181,50 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  /////////////////////////////////
  // TO DO: Complete this function.
  /////////////////////////////////
+ // transform ray to model space
+    struct ray3D* ray_transformed;
+    rayTransform(ray, ray_transformed, plane);
+ // The plane is defined by the following vertices (CCW)
+ // (1,1,0), (-1,1,0), (-1,-1,0), (1,-1,0)
+ // With normal vector (0,0,1) (i.e. parallel to the XY plane)
+ // choose point a as (1,1,0), b as (-1,1,0), c as (-1,-1,0)
+    if (obj->texImg != NULL && obj->textureMap != NULL) {}
+    point3D * point_a = newPoint(1,1,0);
+    point3D * point_b = newPoint(-1,1,0);
+    point3D * point_c = newPoint(-1,-1,0);
+    point3D * point_d = newPoint(ray_transformed->d.px, ray_transformed->d.py, ray_transformed->d.pz);
+    point3D * point_e = newPoint(ray_transformed->p0.px, ray_transformed->p0.py, ray_transformed->p0.pz);
+
+    double  A[4][4];
+    double  A_T[4][4];
+    // build matrix A
+    subVectors(point_a, point_b);
+    subVectors(point_a, point_c);
+    A[0][0] = point_b->px, A[0][1] = point_c->px, A[0][2] = point_d->px, A[0][3] = 0;
+    A[1][0] = point_b->py, A[1][1] = point_c->py, A[1][2] = point_d->py, A[1][3] = 0;
+    A[2][0] = point_b->pz, A[2][1] = point_c->pz, A[2][2] = point_d->pz, A[2][3] = 0;
+    A[3][0] = 0, A[3][1] = 0, A[3][2] = 0, A[3][3] = 1;
+    subVectors(point_a, point_e);
+    invert(A, A_T);
+    matVecMult(A_T, point_e);
+    // result stores in point_e
+    double beta = point_e->px;
+    double gamma = point_e->py;
+    double t = point_e->pz;
+    *lambda = t;
+    struct point3D* n_orig = newPoint(0,0,1);
+    rayPosition(ray_transformed, t, p);
+    // transform back to world space
+    matVecMult(plane->T, p);
+    normalTransform(n_orig, n, plane);
+    // free space
+    free(ray_transformed);
+    free(point_a);
+    free(point_b);
+    free(point_c);
+    free(point_d);
+    free(point_e);
+    free(n_orig);
 }
 
 void sphereIntersect(struct object3D *sphere, struct ray3D *ray, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b)
