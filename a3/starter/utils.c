@@ -81,6 +81,37 @@ inline void normalTransform(struct point3D *n_orig, struct point3D *n_transforme
  ///////////////////////////////////////////
  // TO DO: Complete this function
  ///////////////////////////////////////////
+
+ /* Create a new normal*/
+ struct point3D *new_normal=newPoint(n_orig->px,n_orig->py,n_orig->pz,n_orig->pw);
+ float Tinv_transpose3x3[4][4]; //Matrix after transpose//
+ /* 3X3 matrix part */
+ Tinv_transpose3x3[0][0]=obj->Tinv[0][0];
+ Tinv_transpose3x3[0][1]=obj->Tinv[1][0];
+ Tinv_transpose3x3[0][2]=obj->Tinv[2][0];
+ Tinv_transpose3x3[1][0]=obj->Tinv[0][1];
+ Tinv_transpose3x3[1][1]=obj->Tinv[1][1];
+ Tinv_transpose3x3[1][2]=obj->Tinv[2][1];
+ Tinv_transpose3x3[2][0]=obj->Tinv[0][2];
+ Tinv_transpose3x3[2][1]=obj->Tinv[1][2];
+ Tinv_transpose3x3[2][2]=obj->Tinv[2][2];
+
+ /* should not change the affine part*/
+ Tinv_transpose3x3[3][0]=obj->Tinv[3][0];
+ Tinv_transpose3x3[3][1]=obj->Tinv[3][1];
+ Tinv_transpose3x3[3][2]=obj->Tinv[3][2];
+ Tinv_transpose3x3[3][3]=obj->Tinv[3][3];
+ Tinv_transpose3x3[0][3]=obj->Tinv[0][3];
+ Tinv_transpose3x3[1][3]=obj->Tinv[1][3];
+ Tinv_transpose3x3[2][3]=obj->Tinv[2][3];
+
+ /*Transpose the inverse matrix first*/
+
+ //Multiply the matrix with the normal vector//
+ matVecMult(Tinv_transpose3x3,new_normal);
+
+ n_transformed=new_normal;
+
 }
 
 /////////////////////////////////////////////
@@ -187,6 +218,16 @@ void sphereIntersect(struct object3D *sphere, struct ray3D *ray, double *lambda,
  /////////////////////////////////
  // TO DO: Complete this function.
  /////////////////////////////////
+struct ray3D *transformed_ray;
+rayTransform(ray->ray_orig,transformed_ray,sphere);
+double a,b,c;
+a = dot(transformed_ray->d,transformed_ray->d);
+struct point3D *e_minus_c;
+e_minus_c->
+subVectors(transformed_ray->p0,)
+b = dot(transformed_ray->d,);
+c = dot();
+
 }
 
 void loadTexture(struct object3D *o, const char *filename)
