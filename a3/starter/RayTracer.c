@@ -175,6 +175,32 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  // TO DO: Implement this function. See the notes for
  // reference of what to do in here
  /////////////////////////////////////////////////////////////
+ // Inserts an object into the object list.
+ /* Set lambda to equal to -1 to indicate the ray does not intersect any object */
+ *lambda=-1;
+ struct object3D *iterator=object_list;
+ while(iterator!=NULL)
+ {
+
+    iterator->intersect(iterator,ray,lambda,p,n,a,b);
+    /* Indicates we find a object that the ray hits */
+    if((*lambda)!=-1)
+    {
+    /* need to return the first object this ray intersects */
+        /*  Check the intersection object isn't the source itself */
+        if(iterator!=Os)
+        {
+        *(obj)=iterator;
+        return;
+        }
+        /* Reset lambda to -1 */
+        *lambda=-1;
+    }
+    /* Keep searching in the list */
+    iterator=iterator->next;
+ }
+
+ return;
 
 }
 
@@ -211,6 +237,41 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  // TO DO: Complete this function. Refer to the notes
  // if you are unsure what to do here.
  ///////////////////////////////////////////////////////
+ /* obj is null because it is the first recursion so not from any object */
+ /* By the end of this function call, obj will point to the object this ray firstly intersects */
+ findFirstHit(ray,&lambda,Os,&(obj),&p,&n,&a,&b);
+
+  /* this ray hits something */
+    if(lambda!=-1)
+    {
+    rtShade(obj,&p,&n,ray,depth,a,b,&I);
+    /* Calculate the new refelcted ray */
+    /* Find magnitude of p projected onto n */
+    double magnitude = dot(&(ray->d),&n);
+    struct point3D change_vector;
+    struct point3D new_direction;
+    /* Calculate the change in direction due to reflection */
+    change_vector.px=(double)2*(n.px)*magnitude;
+    change_vector.py=(double)2*(n.py)*magnitude;
+    change_vector.pz=(double)2*(n.pz)*magnitude;
+    change_vector.pw=0;
+
+    new_direction.px=ray->d.px;
+    new_direction.py=ray->d.py;
+    new_direction.pz=ray->d.pz;
+    new_direction.pw=ray->d.pw;
+
+    /* Substract the old direction by the change in the direction */
+    subVectors(&change_vector,&new_direction);
+    ray3D *new_ray=newRay(&p,&new_direction);
+
+    rayTrace(new_ray,depth+1,&I,obj);
+    }
+    else
+    {
+    return;
+    }
+
 }
 
 int main(int argc, char *argv[])

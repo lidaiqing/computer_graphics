@@ -8,6 +8,14 @@
 */
 
 #include "utils.h"
+#include <stdlib.h>
+#include <math.h>
+
+template<class T>
+const T& min(const T& a, const T& b)
+{
+    return (b < a) ? b : a;
+}
 
 // A useful 4x4 identity matrix which can be used at any point to
 // initialize or reset object transformations
@@ -70,6 +78,10 @@ inline void rayTransform(struct ray3D *ray_orig, struct ray3D *ray_transformed, 
  ///////////////////////////////////////////
  // TO DO: Complete this function
  ///////////////////////////////////////////
+    ray_transformed = newRay(ray_orig->p0, ray_orig->d); // copy ray_orig to ray_transformed
+    // transform ray by obj's inverse matrix
+    matVecMult(obj->Tinv, ray_transformed->p0);
+    matVecMult(obj->Tinv, ray_transformed->d);
 }
 
 inline void normalTransform(struct point3D *n_orig, struct point3D *n_transformed, struct object3D *obj)
@@ -83,8 +95,8 @@ inline void normalTransform(struct point3D *n_orig, struct point3D *n_transforme
  ///////////////////////////////////////////
 
  /* Create a new normal*/
- struct point3D *new_normal=newPoint(n_orig->px,n_orig->py,n_orig->pz,n_orig->pw);
- float Tinv_transpose3x3[4][4]; //Matrix after transpose//
+ struct point3D *new_normal=newPoint(n_orig->px,n_orig->py,n_orig->pz);
+ double Tinv_transpose3x3[4][4]; //Matrix after transpose//
  /* 3X3 matrix part */
  Tinv_transpose3x3[0][0]=obj->Tinv[0][0];
  Tinv_transpose3x3[0][1]=obj->Tinv[1][0];
@@ -208,6 +220,50 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  /////////////////////////////////
  // TO DO: Complete this function.
  /////////////////////////////////
+ // transform ray to model space
+    struct ray3D* ray_transformed;
+    rayTransform(ray, ray_transformed, plane);
+ // The plane is defined by the following vertices (CCW)
+ // (1,1,0), (-1,1,0), (-1,-1,0), (1,-1,0)
+ // With normal vector (0,0,1) (i.e. parallel to the XY plane)
+ // choose point a as (1,1,0), b as (-1,1,0), c as (-1,-1,0)
+    if (obj->texImg != NULL && obj->textureMap != NULL) {}
+    point3D * point_a = newPoint(1,1,0);
+    point3D * point_b = newPoint(-1,1,0);
+    point3D * point_c = newPoint(-1,-1,0);
+    point3D * point_d = newPoint(ray_transformed->d.px, ray_transformed->d.py, ray_transformed->d.pz);
+    point3D * point_e = newPoint(ray_transformed->p0.px, ray_transformed->p0.py, ray_transformed->p0.pz);
+
+    double  A[4][4];
+    double  A_T[4][4];
+    // build matrix A
+    subVectors(point_a, point_b);
+    subVectors(point_a, point_c);
+    A[0][0] = point_b->px, A[0][1] = point_c->px, A[0][2] = point_d->px, A[0][3] = 0;
+    A[1][0] = point_b->py, A[1][1] = point_c->py, A[1][2] = point_d->py, A[1][3] = 0;
+    A[2][0] = point_b->pz, A[2][1] = point_c->pz, A[2][2] = point_d->pz, A[2][3] = 0;
+    A[3][0] = 0, A[3][1] = 0, A[3][2] = 0, A[3][3] = 1;
+    subVectors(point_a, point_e);
+    invert(A, A_T);
+    matVecMult(A_T, point_e);
+    // result stores in point_e
+    double beta = point_e->px;
+    double gamma = point_e->py;
+    double t = point_e->pz;
+    *lambda = t;
+    struct point3D* n_orig = newPoint(0,0,1);
+    rayPosition(ray_transformed, t, p);
+    // transform back to world space
+    matVecMult(plane->T, p);
+    normalTransform(n_orig, n, plane);
+    // free space
+    free(ray_transformed);
+    free(point_a);
+    free(point_b);
+    free(point_c);
+    free(point_d);
+    free(point_e);
+    free(n_orig);
 }
 
 void sphereIntersect(struct object3D *sphere, struct ray3D *ray, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b)
@@ -219,14 +275,59 @@ void sphereIntersect(struct object3D *sphere, struct ray3D *ray, double *lambda,
  // TO DO: Complete this function.
  /////////////////////////////////
 struct ray3D *transformed_ray;
-rayTransform(ray->ray_orig,transformed_ray,sphere);
-double a,b,c;
-a = dot(transformed_ray->d,transformed_ray->d);
-struct point3D *e_minus_c;
-e_minus_c->
-subVectors(transformed_ray->p0,)
-b = dot(transformed_ray->d,);
-c = dot();
+rayTransform(ray,transformed_ray,sphere);
+/* Coefficient to solve the quadratic equation */
+double coe_a,coe_b,coe_c;
+struct point3D *e_minus_c=newPoint(0,0,0);
+struct point3D *intersection=newPoint(0,0,0);
+/* d dot d */
+coe_a = dot(&(transformed_ray->d),&(transformed_ray->d));
+/* A point structure to store he value of light_source minus the origin */
+subVectors((e_minus_c),&(transformed_ray->p0));
+/* d dot e-c */
+coe_b = (double)2*dot(&(transformed_ray->d),e_minus_c);
+/* e-c dot e-c */
+coe_c = dot(e_minus_c,e_minus_c)-1;
+
+double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
+
+    if(under_root<0)
+    {
+     /* no intersection found*/
+     *lambda=-1;
+     return;
+    }
+
+    *lambda=min((-coe_b-(double)sqrt(under_root))/(2*coe_a),(-coe_b+(double)sqrt(under_root))/(2*coe_a));
+     if(*lambda<0)
+     {
+     *lambda=-1;
+     return;
+     }
+
+ /* find the point this ray intersect on the sphere*/
+ rayPosition(transformed_ray,*lambda,intersection);
+ /* the sphere is at the origin, so the coordinate of the intersection is the direction for the normal */
+ struct point3D *normal=newPoint(intersection->px,intersection->py,intersection->pz);
+ /* Indicate it is a direction, not a point */
+ normal->pw=0;
+
+
+ /* Transfer model space normal to world space*/
+ struct point3D *world_normal=newPoint(normal->px,normal->py,normal->pz);
+ /* Indicate it is a direction, not a point */
+ world_normal->pw=0;
+ normalTransform(normal,world_normal,sphere);
+ normalize(world_normal);
+
+ /* transfer model space intersection to world space intersection */
+ matVecMult(sphere->T,intersection);
+
+ *p=*intersection;
+ *n=*world_normal;
+
+ free(e_minus_c);
+ free(normal);
 
 }
 
