@@ -80,7 +80,13 @@ inline void normalize(struct point3D *v)
  v->py*=l;
  v->pz*=l;
 }
-
+inline void scaleVector(double scale, struct point3D *v)
+{
+    // scale this vector by scale
+    v->px *= scale;
+    v->py *= scale;
+    v->pz *= scale;
+}
 inline double dot(struct point3D *u, struct point3D *v)
 {
  // Computes the dot product of 3D vectors u and v.
@@ -162,6 +168,61 @@ inline struct ray3D *newRay(struct point3D *p0, struct point3D *d)
   ray->rayPos=&rayPosition;
  }
  return(ray);
+}
+
+inline struct point3D *getReflectionDirection(struct point3D* orig_direction, struct point3D* p, struct point3D* n)
+{
+    struct point3D L;
+    struct point3D N;
+    N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = n->pw;
+    normalize(&N);
+    // calculate light direction L
+    L.px = orig_direction->px, L.py = orig_direction->py, L.pz = orig_direction->pz, L.pw = orig_direction->pw;
+    subVectors(p, &L);
+    normalize(&L);
+    // calculate reflection direction
+    double scale = 2 * dot(&L, &N);
+    scaleVector(scale, &N);
+    subVectors(&N, &L);
+    normalize(&L);
+    //result stores in L
+    struct point3D* R = newPoint(L.px, L.py, L.pz);
+    return R;
+}
+
+inline struct ray3D *getReflectionRay(struct ray3D *ray, struct point3D* p, struct point3D* n)
+{
+    struct point3D *d = getReflectionDirection(ray->d, p, n);
+    struct ray3D *reflectedRay = newRay(p, d);
+    free(d);
+    return reflectedRay;
+}
+
+inline struct ray3D *getRefractionRay(struct ray3D *ray, struct object3D* obj1, struct object3D* obj2, struct point3D* p, struct point3D* n)
+{
+    // ray from obj1 to obj2
+
+    struct point3D t;
+    struct point3D N;
+    struct point3D D;
+    N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = n->pw;
+    normalize(&N);
+    D.px = ray->d.px, D.py = ray->d.py, D.pz = ray->d.pz, D.pw = ray->d.pw;
+    normalize(&D);
+    double n1 = obj1->r_index, n2 = obj2->r_index;
+    double D_dot_N = dot(&D, &N);
+    // store first part result in NN
+    struct point3D NN = N;
+    scaleVector(D_dot_N, &NN);
+    subVectors(&D, &NN);
+    scaleVector(n1 / n2, &NN);
+    // store t in N
+    double scale = sqrt(1.0 - n1 * n1 * (1 - D_dot_N * D_dot_N) / (n2 * n2));
+    scaleVector(scale, &N);
+    subVectors(&NN, &N);
+
+    struct ray3D *refractedRay = newRay(p, &N);
+    return refractedRay;
 }
 
 // Ray and normal transformations to enable the use of canonical intersection tests with transformed objects

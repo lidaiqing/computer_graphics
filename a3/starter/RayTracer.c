@@ -110,7 +110,31 @@ void buildScene(void)
  //           the relflectance properties of your objects, and the number and type of light sources
  //           in the scene.
 }
-
+void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, struct point3D *n, struct ray3D *ray, struct colourRGB* col)
+{
+    struct point3D L;
+    struct point3D* R;
+    struct point3D N;
+    struct point3D V;
+    N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = n->pw;
+    normalize(&N);
+    // viewpoint V
+    V.px = -ray->p0.px, V.py = -ray->p0.py, V.pz = -ray->p0.pz, V.pw = ray->p0.pw;
+    normalize(&V);
+    // calculate light direction L
+    L.px = light->p0.px, L.py = light->p0.py, L.pz = light->p0.pz, L.pw = light->p0.pw;
+    subVectors(p, &L);
+    normalize(&L);
+    // calculate reflection direction
+    R = getReflectionDirection(&L, p, n);
+    // avoid redundant computation
+    double c1 = max(0, dot(&N, &L));
+    double c2 = max(0, pow(dot(&V, R), obj->shinyness));
+    col->R += obj->alb.ra * light->col.R + obj->alb.rd * c1 * light->col.R + obj->alb.rs * c2 * light->col.R;
+    col->G += obj->alb.ra * light->col.G + obj->alb.rd * c1 * light->col.G + obj->alb.rs * c2 * light->col.G;
+    col->B += obj->alb.ra * light->col.B + obj->alb.rd * c1 * light->col.B + obj->alb.rs * c2 * light->col.B;
+    free(R);
+}
 void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double a, double b, struct colourRGB *col)
 {
  // This function implements the shading model as described in lecture. It takes
@@ -154,6 +178,46 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  //////////////////////////////////////////////////////////////
 
  // Be sure to update 'col' with the final colour computed here!
+ // base case when depth > MAX_DEPTH
+ if (depth > MAX_DEPTH) {
+    col->R += R;
+    col->G += G;
+    col->B += B;
+    return;
+  }
+ // Loop through each light source
+ struct pointLS* lightPtr = light_list;
+ while (lightPtr) {
+    // check if the ray can reach this light source
+    double lambda;
+    struct object3D *dummy_obj;
+    struct point3D dummy_point;
+    double dummy_value;
+    struct point3D L;
+    // calculate p to light direction L
+    L.px = p->px, L.py = p->py, L.pz = p->pz, L.pw = p->pw;
+    subVectors(lightPtr->p0, &L);
+    normalize(&L);
+    struct ray3D* test_ray = newRay(p, &L);
+
+    findFirstHit(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+    if (lambda > 0) {
+        // do not add contribute to color
+    } else {
+        phongModel(obj, lightPtr, p, n, ray, &tmp_col);
+    }
+    // reflection ray
+    struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
+    rayTrace(reflectedRay, depth + 1, col, obj);
+    free(reflectedRay);
+
+    // refraction ray
+    struct ray3D* refractedRay = getRefractionRay(ray, obj, obj, p, n);
+    rayTrace(refractedRay, depth + 1, col, obj);
+
+    free(refractedRay);
+    lightPtr = lightPtr->next;
+ }
  return;
 
 }
