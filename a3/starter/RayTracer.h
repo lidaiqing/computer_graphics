@@ -100,10 +100,10 @@ struct object3D{
         // intersection point p, the normal at that point n, and the texture coordinates (a,b).
         // The texture coordinates are not used unless texImg!=NULL and a textureMap function
         // has been provided
-	void (*intersect)(struct object3D *obj, struct ray3D *ray, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b);		
+	void (*intersect)(struct object3D *obj, struct ray3D *ray, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b);
 
 	// Texture mapping function. Takes normalized texture coordinates (a,b) and returns the
-  	// texture colour at that point using bi-linear interpolation 
+  	// texture colour at that point using bi-linear interpolation
 	void (*textureMap)(struct image *img, double a, double b, double *R, double *G, double *B);
 
         struct image *texImg;				// Pointer to structure
@@ -145,7 +145,7 @@ struct view{
 };
 
 // Function definitions start here
-int main(int argc, char *argv[]);									// Main raytracing function. 
+int main(int argc, char *argv[]);									// Main raytracing function.
 void buildScene(void);											// Scene set up. Defines objects and object transformations
 void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object3D *Os);		// RayTracing routine
 void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b);

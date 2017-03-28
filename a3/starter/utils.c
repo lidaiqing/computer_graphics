@@ -78,10 +78,10 @@ inline void rayTransform(struct ray3D *ray_orig, struct ray3D *ray_transformed, 
  ///////////////////////////////////////////
  // TO DO: Complete this function
  ///////////////////////////////////////////
-    ray_transformed = newRay(ray_orig->p0, ray_orig->d); // copy ray_orig to ray_transformed
+    ray_transformed = newRay(&ray_orig->p0, &ray_orig->d); // copy ray_orig to ray_transformed
     // transform ray by obj's inverse matrix
-    matVecMult(obj->Tinv, ray_transformed->p0);
-    matVecMult(obj->Tinv, ray_transformed->d);
+    matVecMult(obj->Tinv, &ray_transformed->p0);
+    matVecMult(obj->Tinv, &ray_transformed->d);
 }
 
 inline void normalTransform(struct point3D *n_orig, struct point3D *n_transformed, struct object3D *obj)
@@ -223,11 +223,17 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  // transform ray to model space
     struct ray3D* ray_transformed;
     rayTransform(ray, ray_transformed, plane);
+ // check if ray is parallel to unit plane
+    if (ray_transformed->d.pz == 0) {
+      *lambda = -1;
+      free(ray_transformed);
+      return;
+    }
  // The plane is defined by the following vertices (CCW)
  // (1,1,0), (-1,1,0), (-1,-1,0), (1,-1,0)
  // With normal vector (0,0,1) (i.e. parallel to the XY plane)
  // choose point a as (1,1,0), b as (-1,1,0), c as (-1,-1,0)
-    if (obj->texImg != NULL && obj->textureMap != NULL) {}
+    if (plane->texImg != NULL && plane->textureMap != NULL) {}
     point3D * point_a = newPoint(1,1,0);
     point3D * point_b = newPoint(-1,1,0);
     point3D * point_c = newPoint(-1,-1,0);
@@ -244,15 +250,38 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     A[2][0] = point_b->pz, A[2][1] = point_c->pz, A[2][2] = point_d->pz, A[2][3] = 0;
     A[3][0] = 0, A[3][1] = 0, A[3][2] = 0, A[3][3] = 1;
     subVectors(point_a, point_e);
-    invert(A, A_T);
+    invert(&A[0][0], &A_T[0][0]);
     matVecMult(A_T, point_e);
     // result stores in point_e
     double beta = point_e->px;
     double gamma = point_e->py;
     double t = point_e->pz;
+    // check if it is behind the camera
+    if (t < 0) {
+      *lambda = -1;
+      free(ray_transformed);
+      free(point_a);
+      free(point_b);
+      free(point_c);
+      free(point_d);
+      free(point_e);
+      return;
+    }
     *lambda = t;
     struct point3D* n_orig = newPoint(0,0,1);
     rayPosition(ray_transformed, t, p);
+    // check if point p is whithin the plane
+    if (p->px < -1 || p->px > 1 || p->py < -1 || p->px > 1) {
+      *lambda = -1;
+      free(ray_transformed);
+      free(point_a);
+      free(point_b);
+      free(point_c);
+      free(point_d);
+      free(point_e);
+      free(n_orig);
+      return;
+    }
     // transform back to world space
     matVecMult(plane->T, p);
     normalTransform(n_orig, n, plane);
