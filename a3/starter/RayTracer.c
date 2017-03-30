@@ -110,7 +110,7 @@ void buildScene(void)
  //           the relflectance properties of your objects, and the number and type of light sources
  //           in the scene.
 }
-void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, struct point3D *n, struct ray3D *ray, struct colourRGB* col)
+void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double CR, double CG, double CB, struct colourRGB* col)
 {
     struct point3D L;
     struct point3D* R;
@@ -130,9 +130,13 @@ void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, 
     // avoid redundant computation
     double c1 = max(0, dot(&N, &L));
     double c2 = max(0, pow(dot(&V, R), obj->shinyness));
+    double c3 = (CR + CG + CB) * depth;
     col->R += obj->alb.ra * light->col.R + obj->alb.rd * c1 * light->col.R + obj->alb.rs * c2 * light->col.R;
     col->G += obj->alb.ra * light->col.G + obj->alb.rd * c1 * light->col.G + obj->alb.rs * c2 * light->col.G;
     col->B += obj->alb.ra * light->col.B + obj->alb.rd * c1 * light->col.B + obj->alb.rs * c2 * light->col.B;
+    col->R *= (CR / c3);
+    col->G *= (CG / c3);
+    col->B *= (CB / c3);
     free(R);
 }
 void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double a, double b, struct colourRGB *col)
@@ -180,9 +184,9 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // Be sure to update 'col' with the final colour computed here!
  // base case when depth > MAX_DEPTH
  if (depth > MAX_DEPTH) {
-    col->R += R;
-    col->G += G;
-    col->B += B;
+    col->R = tmp_col.R;
+    col->G = tmp_col.G;
+    col->B = tmp_col.B;
     return;
   }
  // Loop through each light source
@@ -196,7 +200,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     struct point3D L;
     // calculate p to light direction L
     L.px = p->px, L.py = p->py, L.pz = p->pz, L.pw = p->pw;
-    subVectors(lightPtr->p0, &L);
+    subVectors(&lightPtr->p0, &L);
     normalize(&L);
     struct ray3D* test_ray = newRay(p, &L);
 
@@ -204,7 +208,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     if (lambda > 0) {
         // do not add contribute to color
     } else {
-        phongModel(obj, lightPtr, p, n, ray, &tmp_col);
+        phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
     }
     // reflection ray
     struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
@@ -243,9 +247,9 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  *lambda=-1;
  /* set to -1 so the default is invalid */
  int found=0;
- struct object3D *temp;
+ struct object3D *best_obj;
  struct object3D *iterator=object_list;
- double minimum=9999999;
+ double minimum= INT_MAX;
  while(iterator!=NULL)
  {
 
@@ -261,7 +265,7 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
             {
             found=1;
             minimum=*lambda;
-            temp=iterator;
+            best_obj=iterator;
             }
         }
     }
@@ -273,7 +277,7 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  if(found)
  {
   *lambda=minimum;
-  *(obj)=temp;
+  *(obj)=best_obj;
  }
  return;
 
@@ -465,29 +469,24 @@ int main(int argc, char *argv[])
  fprintf(stderr,"\n");
 
  struct point3D ray_direction;
- struct
  fprintf(stderr,"Rendering row: ");
  for (j=0;j<sx;j++)		// For each of the pixels in the image
  {
   fprintf(stderr,"%d/%d, ",j,sx);
   for (i=0;i<sx;i++)
   {
-    ray_direction->px=(-wsize/2)+i*(du)+0.5*(du)-cam->e.x;
-    ray_direction->py=(wsize/2)+j*(dv)+0.5*(dv)-cam->e.y;
-    ray_direction->pz=(-cam->f);
-    ray_direction->pw=0;
-    ray=newRay(cam->e,ray_direction);
+    /*ray_direction.px=(-cam->wsize/2)+i*(du)+0.5*(du)-cam->e.px;
+    ray_direction.py=(cam->wsize/2)+j*(dv)+0.5*(dv)-cam->e.py;
+    ray_direction.pz=(-cam->f);
+    ray_direction.pw=0;
+    ray=newRay(&cam->e, &ray_direction);
     ///////////////////////////////////////////////////////////////////
     // TO DO - complete the code that should be in this loop to do the
     //         raytracing!
     ///////////////////////////////////////////////////////////////////
-    rayTrace(ray,0,&col,null);
+    rayTrace(ray,1,&col,NULL);
 
-    struct image{
-	void *rgbdata;
-	int sx;
-	int sy;
-    memcpy((unsigned char *)im->rgbdata+(i*sx+j)*3,&col,sizeof(struct colourRGB));
+    memcpy((unsigned char *)im->rgbdata+(j*sx+i)*3, &col, sizeof(struct colourRGB));*/
   } // end for i
  } // end for j
 

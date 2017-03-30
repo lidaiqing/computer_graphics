@@ -192,7 +192,7 @@ inline struct point3D *getReflectionDirection(struct point3D* orig_direction, st
 
 inline struct ray3D *getReflectionRay(struct ray3D *ray, struct point3D* p, struct point3D* n)
 {
-    struct point3D *d = getReflectionDirection(ray->d, p, n);
+    struct point3D *d = getReflectionDirection(&ray->d, p, n);
     struct ray3D *reflectedRay = newRay(p, d);
     free(d);
     return reflectedRay;

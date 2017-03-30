@@ -78,7 +78,6 @@ inline void rayTransform(struct ray3D *ray_orig, struct ray3D *ray_transformed, 
  ///////////////////////////////////////////
  // TO DO: Complete this function
  ///////////////////////////////////////////
-    ray_transformed = newRay(&ray_orig->p0, &ray_orig->d); // copy ray_orig to ray_transformed
     // transform ray by obj's inverse matrix
     matVecMult(obj->Tinv, &ray_transformed->p0);
     matVecMult(obj->Tinv, &ray_transformed->d);
@@ -95,7 +94,7 @@ inline void normalTransform(struct point3D *n_orig, struct point3D *n_transforme
  ///////////////////////////////////////////
 
  /* Create a new normal*/
- struct point3D *new_normal=newPoint(n_orig->px,n_orig->py,n_orig->pz);
+
  double Tinv_transpose3x3[4][4]; //Matrix after transpose//
  /* 3X3 matrix part */
  Tinv_transpose3x3[0][0]=obj->Tinv[0][0];
@@ -120,9 +119,7 @@ inline void normalTransform(struct point3D *n_orig, struct point3D *n_transforme
  /*Transpose the inverse matrix first*/
 
  //Multiply the matrix with the normal vector//
- matVecMult(Tinv_transpose3x3,new_normal);
-
- n_transformed=new_normal;
+ matVecMult(Tinv_transpose3x3, n_transformed);
 
 }
 
@@ -221,7 +218,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  // TO DO: Complete this function.
  /////////////////////////////////
  // transform ray to model space
-    struct ray3D* ray_transformed;
+    struct ray3D* ray_transformed = newRay(&ray->p0, &ray->d);
     rayTransform(ray, ray_transformed, plane);
  // check if ray is parallel to unit plane
     if (ray_transformed->d.pz == 0) {
@@ -284,6 +281,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     }
     // transform back to world space
     matVecMult(plane->T, p);
+    n = newPoint(n_orig->px, n_orig->py, n_orig->pz);
     normalTransform(n_orig, n, plane);
     // free space
     free(ray_transformed);
@@ -303,7 +301,7 @@ void sphereIntersect(struct object3D *sphere, struct ray3D *ray, double *lambda,
  /////////////////////////////////
  // TO DO: Complete this function.
  /////////////////////////////////
-struct ray3D *transformed_ray;
+struct ray3D *transformed_ray = newRay(&ray->p0, &ray->d);
 rayTransform(ray,transformed_ray,sphere);
 /* Coefficient to solve the quadratic equation */
 double coe_a,coe_b,coe_c;
@@ -345,7 +343,6 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
  /* Transfer model space normal to world space*/
  struct point3D *world_normal=newPoint(normal->px,normal->py,normal->pz);
  /* Indicate it is a direction, not a point */
- world_normal->pw=0;
  normalTransform(normal,world_normal,sphere);
  normalize(world_normal);
 
