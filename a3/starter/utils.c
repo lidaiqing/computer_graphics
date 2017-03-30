@@ -905,6 +905,7 @@ void imageOutput(struct image *im, const char *filename)
    fprintf(f,"255\n");
    fwrite((unsigned char *)im->rgbdata,im->sx*im->sy*3*sizeof(unsigned char),1,f);
    fclose(f);
+   fclose(f);
    return;
   }
  fprintf(stderr,"imageOutput(): Specified image is empty. Nothing output\n");

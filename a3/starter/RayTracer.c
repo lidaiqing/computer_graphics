@@ -234,7 +234,6 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  // Os is the 'source' object for the ray we are processing, can be NULL, and is used to ensure we don't 
  // return a self-intersection due to numerical errors for recursive raytrace calls.
  //
-
  /////////////////////////////////////////////////////////////
  // TO DO: Implement this function. See the notes for
  // reference of what to do in here
@@ -242,7 +241,11 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  // Inserts an object into the object list.
  /* Set lambda to equal to -1 to indicate the ray does not intersect any object */
  *lambda=-1;
+ /* set to -1 so the default is invalid */
+ int found=0;
+ struct object3D *temp;
  struct object3D *iterator=object_list;
+ double minimum=9999999;
  while(iterator!=NULL)
  {
 
@@ -254,16 +257,24 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
         /*  Check the intersection object isn't the source itself */
         if(iterator!=Os)
         {
-        *(obj)=iterator;
-        return;
+        if(*lambda<minimum)
+            {
+            found=1;
+            minimum=*lambda;
+            temp=iterator;
+            }
         }
-        /* Reset lambda to -1 */
-        *lambda=-1;
     }
     /* Keep searching in the list */
     iterator=iterator->next;
  }
 
+ /* meaning find some valid intersections */
+ if(found)
+ {
+  *lambda=minimum;
+  *(obj)=temp;
+ }
  return;
 
 }
@@ -296,7 +307,6 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
   col->B=-1;
   return;
  }
-
  ///////////////////////////////////////////////////////
  // TO DO: Complete this function. Refer to the notes
  // if you are unsure what to do here.
@@ -304,38 +314,15 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  /* obj is null because it is the first recursion so not from any object */
  /* By the end of this function call, obj will point to the object this ray firstly intersects */
  findFirstHit(ray,&lambda,Os,&(obj),&p,&n,&a,&b);
-
   /* this ray hits something */
     if(lambda!=-1)
     {
-    rtShade(obj,&p,&n,ray,depth,a,b,&I);
-    /* Calculate the new refelcted ray */
-    /* Find magnitude of p projected onto n */
-    double magnitude = dot(&(ray->d),&n);
-    struct point3D change_vector;
-    struct point3D new_direction;
-    /* Calculate the change in direction due to reflection */
-    change_vector.px=(double)2*(n.px)*magnitude;
-    change_vector.py=(double)2*(n.py)*magnitude;
-    change_vector.pz=(double)2*(n.pz)*magnitude;
-    change_vector.pw=0;
-
-    new_direction.px=ray->d.px;
-    new_direction.py=ray->d.py;
-    new_direction.pz=ray->d.pz;
-    new_direction.pw=ray->d.pw;
-
-    /* Substract the old direction by the change in the direction */
-    subVectors(&change_vector,&new_direction);
-    ray3D *new_ray=newRay(&p,&new_direction);
-
-    rayTrace(new_ray,depth+1,&I,obj);
+    rtShade(obj,&p,&n,ray,depth,a,b,col);
     }
     else
     {
     return;
     }
-
 }
 
 int main(int argc, char *argv[])
@@ -401,7 +388,7 @@ int main(int argc, char *argv[])
  //        *interesting* scene.
  ///////////////////////////////////////////////////
  buildScene();		// Create a scene. This defines all the
-			// objects in the world of the raytracer
+		        	// objects in the world of the raytracer
 
  //////////////////////////////////////////
  // TO DO: For Assignment 3 you can use the setup
@@ -477,17 +464,30 @@ int main(int argc, char *argv[])
  printmatrix(cam->W2C);
  fprintf(stderr,"\n");
 
+ struct point3D ray_direction;
+ struct
  fprintf(stderr,"Rendering row: ");
  for (j=0;j<sx;j++)		// For each of the pixels in the image
  {
   fprintf(stderr,"%d/%d, ",j,sx);
   for (i=0;i<sx;i++)
   {
+    ray_direction->px=(-wsize/2)+i*(du)+0.5*(du)-cam->e.x;
+    ray_direction->py=(wsize/2)+j*(dv)+0.5*(dv)-cam->e.y;
+    ray_direction->pz=(-cam->f);
+    ray_direction->pw=0;
+    ray=newRay(cam->e,ray_direction);
     ///////////////////////////////////////////////////////////////////
     // TO DO - complete the code that should be in this loop to do the
     //         raytracing!
     ///////////////////////////////////////////////////////////////////
+    rayTrace(ray,0,&col,null);
 
+    struct image{
+	void *rgbdata;
+	int sx;
+	int sy;
+    memcpy((unsigned char *)im->rgbdata+(i*sx+j)*3,&col,sizeof(struct colourRGB));
   } // end for i
  } // end for j
 
