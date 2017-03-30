@@ -253,6 +253,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     double beta = point_e->px;
     double gamma = point_e->py;
     double t = point_e->pz;
+    std::cout << beta << " " << gamma << " " << t << std::endl;
     // check if it is behind the camera
     if (t < 0) {
       *lambda = -1;
@@ -291,6 +292,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     free(point_d);
     free(point_e);
     free(n_orig);
+
 
 }
 
@@ -355,7 +357,7 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
 
  free(e_minus_c);
  free(normal);
-
+    //std::cout << *lambda << std::endl;
 }
 
 void loadTexture(struct object3D *o, const char *filename)

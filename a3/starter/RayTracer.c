@@ -264,6 +264,7 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
         /*  Check the intersection object isn't the source itself */
         if(iterator!=Os)
         {
+
         if(*lambda<minimum)
             {
             found=1;
