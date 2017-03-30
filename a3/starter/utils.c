@@ -291,6 +291,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     free(point_d);
     free(point_e);
     free(n_orig);
+
 }
 
 void sphereIntersect(struct object3D *sphere, struct ray3D *ray, double *lambda, struct point3D *p, struct point3D *n, double *a, double *b)
@@ -902,7 +903,7 @@ void imageOutput(struct image *im, const char *filename)
    fprintf(f,"255\n");
    fwrite((unsigned char *)im->rgbdata,im->sx*im->sy*3*sizeof(unsigned char),1,f);
    fclose(f);
-   fclose(f);
+   //fclose(f);
    return;
   }
  fprintf(stderr,"imageOutput(): Specified image is empty. Nothing output\n");

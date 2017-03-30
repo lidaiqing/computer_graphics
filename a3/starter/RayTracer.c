@@ -130,7 +130,7 @@ void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, 
     // avoid redundant computation
     double c1 = max(0, dot(&N, &L));
     double c2 = max(0, pow(dot(&V, R), obj->shinyness));
-    double c3 = (CR + CG + CB) * depth;
+    double c3 = (CR + CG + CB) * (double)depth;
     col->R += obj->alb.ra * light->col.R + obj->alb.rd * c1 * light->col.R + obj->alb.rs * c2 * light->col.R;
     col->G += obj->alb.ra * light->col.G + obj->alb.rd * c1 * light->col.G + obj->alb.rs * c2 * light->col.G;
     col->B += obj->alb.ra * light->col.B + obj->alb.rd * c1 * light->col.B + obj->alb.rs * c2 * light->col.B;
@@ -163,16 +163,17 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  tmp_col.G=0;
  tmp_col.B=0;
 
- if (obj->texImg==NULL)		// Not textured, use object colour
+ if (obj!= NULL && obj->texImg == NULL)		// Not textured, use object colour
  {
   R=obj->col.R;
   G=obj->col.G;
   B=obj->col.B;
  }
- else
+ else if (obj != NULL && obj->texImg != NULL)
  {
   // Get object colour from the texture given the texture coordinates (a,b), and the texturing function
   // for the object. Note that we will use textures also for Photon Mapping.
+  //printf("here\n");
   obj->textureMap(obj->texImg,a,b,&R,&G,&B);
  }
 
@@ -184,9 +185,8 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // Be sure to update 'col' with the final colour computed here!
  // base case when depth > MAX_DEPTH
  if (depth > MAX_DEPTH) {
-    col->R = tmp_col.R;
-    col->G = tmp_col.G;
-    col->B = tmp_col.B;
+    //std::cout << col->R << " " << col->G << " " << col->B << std::endl;
+
     return;
   }
  // Loop through each light source
@@ -222,6 +222,9 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     free(refractedRay);
     lightPtr = lightPtr->next;
  }
+    col->R += tmp_col.R;
+    col->G += tmp_col.G;
+    col->B += tmp_col.B;
  return;
 
 }
@@ -299,18 +302,18 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
 
  double lambda;		// Lambda at intersection
  double a,b;		// Texture coordinates
- struct object3D *obj;	// Pointer to object at intersection
+ struct object3D *obj = object_list;	// Pointer to object at intersection
  struct point3D p;	// Intersection point
  struct point3D n;	// Normal at intersection
  struct colourRGB I;	// Colour returned by shading function
 
- if (depth>MAX_DEPTH)	// Max recursion depth reached. Return invalid colour.
+ /*if (depth>MAX_DEPTH)	// Max recursion depth reached. Return invalid colour.
  {
   col->R=-1;
   col->G=-1;
   col->B=-1;
   return;
- }
+ }*/
  ///////////////////////////////////////////////////////
  // TO DO: Complete this function. Refer to the notes
  // if you are unsure what to do here.
@@ -472,10 +475,10 @@ int main(int argc, char *argv[])
  fprintf(stderr,"Rendering row: ");
  for (j=0;j<sx;j++)		// For each of the pixels in the image
  {
-  fprintf(stderr,"%d/%d, ",j,sx);
+  //fprintf(stderr,"%d/%d, ",j,sx);
   for (i=0;i<sx;i++)
   {
-    /*ray_direction.px=(-cam->wsize/2)+i*(du)+0.5*(du)-cam->e.px;
+    ray_direction.px=(-cam->wsize/2)+i*(du)+0.5*(du)-cam->e.px;
     ray_direction.py=(cam->wsize/2)+j*(dv)+0.5*(dv)-cam->e.py;
     ray_direction.pz=(-cam->f);
     ray_direction.pw=0;
@@ -484,9 +487,10 @@ int main(int argc, char *argv[])
     // TO DO - complete the code that should be in this loop to do the
     //         raytracing!
     ///////////////////////////////////////////////////////////////////
+    col.R = col.G = col.B = 0;
     rayTrace(ray,1,&col,NULL);
-
-    memcpy((unsigned char *)im->rgbdata+(j*sx+i)*3, &col, sizeof(struct colourRGB));*/
+    //fprintf(stderr, "RGB is: %0.2f, %0.2f, %0.2f\n", col.R, col.G, col.B);
+    memcpy((unsigned char *)im->rgbdata+(j*sx+i)*3, &col, sizeof(struct colourRGB));
   } // end for i
  } // end for j
 
@@ -496,7 +500,7 @@ int main(int argc, char *argv[])
  imageOutput(im,output_name);
 
  // Exit section. Clean up and return.
- cleanup(object_list,light_list);		// Object and light lists
+ cleanup(object_list, light_list);		// Object and light lists
  deleteImage(im);				// Rendered image
  free(cam);					// camera view
  exit(0);
