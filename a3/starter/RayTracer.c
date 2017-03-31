@@ -65,7 +65,7 @@ void buildScene(void)
 
  // Let's add a plane
  // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
- o=newPlane(.05,.75,.05,.05,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
+ o=newPlane(.05,.75,.75,.05,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
 						// should see some reflections if all is done properly.
 						// Colour is close to cyan, and currently the plane is
 						// completely opaque (alpha=1). The refraction index is
@@ -116,27 +116,31 @@ void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, 
     struct point3D* R;
     struct point3D N;
     struct point3D V;
-    N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = n->pw;
+    //std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << std::endl;
+    //std::cout<<"point " << p->px << " " << p->py << " " << p->pz << std::endl;
+    N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = 0;
     normalize(&N);
-    // viewpoint V
-    V.px = -ray->p0.px, V.py = -ray->p0.py, V.pz = -ray->p0.pz, V.pw = ray->p0.pw;
+    //std::cout<<"normal " << N.px << " " << N.py << " " << N.pz << std::endl;
+    // viewpoint V vector
+    V.px = -ray->d.px, V.py = -ray->d.py, V.pz = -ray->d.pz, V.pw = 0;
     normalize(&V);
     // calculate light direction L
     L.px = light->p0.px, L.py = light->p0.py, L.pz = light->p0.pz, L.pw = light->p0.pw;
     subVectors(p, &L);
+    // L is direction
+    L.pw = 0;
     normalize(&L);
+    //std::cout<<"direction " << L.px << " " << L.py << " " << L.pz << std::endl;
     // calculate reflection direction
     R = getReflectionDirection(&L, p, n);
     // avoid redundant computation
-    double c1 = max(0, dot(&N, &L));
-    double c2 = max(0, pow(dot(&V, R), obj->shinyness));
-    double c3 = (CR + CG + CB) * (double)depth;
-    col->R += obj->alb.ra * light->col.R + obj->alb.rd * c1 * light->col.R + obj->alb.rs * c2 * light->col.R;
-    col->G += obj->alb.ra * light->col.G + obj->alb.rd * c1 * light->col.G + obj->alb.rs * c2 * light->col.G;
-    col->B += obj->alb.ra * light->col.B + obj->alb.rd * c1 * light->col.B + obj->alb.rs * c2 * light->col.B;
-    col->R *= (CR / c3);
-    col->G *= (CG / c3);
-    col->B *= (CB / c3);
+    double c1 = max(0, -dot(&N, &L));
+    //std::cout<<"dot: " << c1 << std::endl;
+    double c2 = pow(max(0, dot(&V, R)), obj->shinyness);
+    // multiply ambient and difuse terms by its color
+    col->R += (obj->alb.ra * light->col.R + obj->alb.rd * c1 * light->col.R) * CR + obj->alb.rs * c2 * light->col.R;
+    col->G += (obj->alb.ra * light->col.G + obj->alb.rd * c1 * light->col.G) * CG + obj->alb.rs * c2 * light->col.G;
+    col->B += (obj->alb.ra * light->col.B + obj->alb.rd * c1 * light->col.B) * CB + obj->alb.rs * c2 * light->col.B;
     free(R);
 }
 void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double a, double b, struct colourRGB *col)
@@ -201,6 +205,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     // calculate p to light direction L
     L.px = p->px, L.py = p->py, L.pz = p->pz, L.pw = p->pw;
     subVectors(&lightPtr->p0, &L);
+    L.pw = 0;
     normalize(&L);
     struct ray3D* test_ray = newRay(p, &L);
 
@@ -252,7 +257,7 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  int found=0;
  struct object3D *best_obj;
  struct object3D *iterator=object_list;
- double minimum= INT_MAX;
+ double minimum= 100000;
  while(iterator!=NULL)
  {
 
@@ -260,6 +265,8 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
     /* Indicates we find a object that the ray hits */
     if((*lambda)!=-1)
     {
+      //if (iterator->intersect == planeIntersect)
+      //  std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << " " << n->pw << std::endl;
     /* need to return the first object this ray intersects */
         /*  Check the intersection object isn't the source itself */
         if(iterator!=Os)
@@ -325,6 +332,7 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
   /* this ray hits something */
     if(lambda!=-1)
     {
+
     rtShade(obj,&p,&n,ray,depth,a,b,col);
     }
     else
@@ -413,7 +421,7 @@ int main(int argc, char *argv[])
  // Camera center is at (0,0,-1)
  e.px=0;
  e.py=0;
- e.pz=-3;
+ e.pz=-1;
  e.pw=1;
 
  // To define the gaze vector, we choose a point 'pc' in the scene that
@@ -422,13 +430,13 @@ int main(int argc, char *argv[])
  g.px=0;
  g.py=0;
  g.pz=1;
- g.pw=1;
+ g.pw=0;
 
  // Define the 'up' vector to be the Y axis
  up.px=0;
  up.py=1;
  up.pz=0;
- up.pw=1;
+ up.pw=0;
 
  // Set up view with given the above vectors, a 4x4 window,
  // and a focal length of -1 (why? where is the image plane?)
@@ -490,8 +498,12 @@ int main(int argc, char *argv[])
     ///////////////////////////////////////////////////////////////////
     col.R = col.G = col.B = 0;
     rayTrace(ray,1,&col,NULL);
+    //std::cout << col.R << " " << col.G << " " << col.B << std::endl;
     //fprintf(stderr, "RGB is: %0.2f, %0.2f, %0.2f\n", col.R, col.G, col.B);
-    memcpy((unsigned char *)im->rgbdata+(j*sx+i)*3, &col, sizeof(struct colourRGB));
+    //memcpy((unsigned char *)im->rgbdata+(j*sx+i)*3, &col, sizeof(struct colourRGB));
+    *(rgbIm + 3 * (j * sx  + i)) = col.R * 255;
+    *(rgbIm + 3 * (j * sx  + i) + 1) = col.G * 255;
+    *(rgbIm + 3 * (j * sx  + i) + 2) = col.B * 255;
   } // end for i
  } // end for j
 

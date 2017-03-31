@@ -227,6 +227,34 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
       return;
     }
     double t = -ray_transformed->p0.pz / ray_transformed->d.pz;
+    if (t < 0) {
+      *lambda = -1;
+      free(ray_transformed);
+      return;
+    }
+    rayPosition(ray_transformed, t, p);
+    // check if it is behind the camera
+    if (p->px < -1 || p->px > 1 || p->py < -1 || p->px > 1) {
+      *lambda = -1;
+      free(ray_transformed);
+      return;
+    }
+    *lambda = t;
+    struct point3D* n_orig = newPoint(0,0,1);
+    n_orig->pw = 0;
+    // transform back to world space
+    matVecMult(plane->T, p);
+    n->px = 0;
+    n->py = 0;
+    n->pz = 1;
+    n->pw = 0;
+    normalTransform(n_orig, n, plane);
+    //std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << " " << n->pw << std::endl;
+
+    // free space
+    free(ray_transformed);
+    free(n_orig);
+    //std::cout << t << std::endl;
  // The plane is defined by the following vertices (CCW)
  // (1,1,0), (-1,1,0), (-1,-1,0), (1,-1,0)
  // With normal vector (0,0,1) (i.e. parallel to the XY plane)
@@ -284,7 +312,10 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     }
     // transform back to world space
     matVecMult(plane->T, p);
-    n = newPoint(n_orig->px, n_orig->py, n_orig->pz);
+    n->px = n_orig->px;
+    n->py = n_orig->py;
+    n->pz = n_orig->pz;
+    n->pw = 0;
     normalTransform(n_orig, n, plane);
     // free space
     free(ray_transformed);
@@ -293,8 +324,8 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     free(point_c);
     free(point_d);
     free(point_e);
-    free(n_orig);*/
-
+    free(n_orig);
+*/
 
 
 
@@ -362,7 +393,6 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
  free(e_minus_c);
  free(normal);
     //std::cout << *lambda << std::endl;
-  std::cout << *lambda << std::endl;
 }
 
 void loadTexture(struct object3D *o, const char *filename)
@@ -686,7 +716,7 @@ struct view *setupView(struct point3D *e, struct point3D *g, struct point3D *up,
  c->w.px=-g->px;
  c->w.py=-g->py;
  c->w.pz=-g->pz;
- c->w.pw=1;
+ c->w.pw=0;
  normalize(&c->w);
 
  // Set up the horizontal direction, which must be perpenticular to w and up
@@ -695,7 +725,7 @@ struct view *setupView(struct point3D *e, struct point3D *g, struct point3D *up,
  c->u.px=u->px;
  c->u.py=u->py;
  c->u.pz=u->pz;
- c->u.pw=1;
+ c->u.pw=0;
 
  // Set up the remaining direction, v=(u x w)  - Mind the signs
  v=cross(&c->u, &c->w);
@@ -703,7 +733,7 @@ struct view *setupView(struct point3D *e, struct point3D *g, struct point3D *up,
  c->v.px=v->px;
  c->v.py=v->py;
  c->v.pz=v->pz;
- c->v.pw=1;
+ c->v.pw=0;
 
  // Copy focal length and window size parameters
  c->f=f;
