@@ -216,10 +216,10 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     free(reflectedRay);
 
     // refraction ray
-    struct ray3D* refractedRay = getRefractionRay(ray, obj, obj, p, n);
+    /*struct ray3D* refractedRay = getRefractionRay(ray, obj, obj, p, n);
     rayTrace(refractedRay, depth + 1, col, obj);
 
-    free(refractedRay);
+    free(refractedRay);*/
     lightPtr = lightPtr->next;
  }
     col->R += tmp_col.R;
@@ -238,7 +238,7 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  //   - The location of the intersection point (in p)
  //   - The normal at the intersection point (in n)
  //
- // Os is the 'source' object for the ray we are processing, can be NULL, and is used to ensure we don't 
+ // Os is the 'source' object for the ray we are processing, can be NULL, and is used to ensure we don't
  // return a self-intersection due to numerical errors for recursive raytrace calls.
  //
  /////////////////////////////////////////////////////////////

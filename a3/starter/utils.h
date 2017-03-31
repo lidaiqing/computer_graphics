@@ -174,7 +174,7 @@ inline struct point3D *getReflectionDirection(struct point3D* orig_direction, st
 {
     struct point3D L;
     struct point3D N;
-    N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = n->pw;
+    N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = 0;
     normalize(&N);
     // calculate light direction L
     L.px = orig_direction->px, L.py = orig_direction->py, L.pz = orig_direction->pz, L.pw = orig_direction->pw;
@@ -187,6 +187,8 @@ inline struct point3D *getReflectionDirection(struct point3D* orig_direction, st
     normalize(&L);
     //result stores in L
     struct point3D* R = newPoint(L.px, L.py, L.pz);
+    // R is a direction
+    R->pw = 0;
     return R;
 }
 

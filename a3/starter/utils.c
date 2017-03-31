@@ -226,12 +226,13 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
       free(ray_transformed);
       return;
     }
+    double t = -ray_transformed->p0.pz / ray_transformed->d.pz;
  // The plane is defined by the following vertices (CCW)
  // (1,1,0), (-1,1,0), (-1,-1,0), (1,-1,0)
  // With normal vector (0,0,1) (i.e. parallel to the XY plane)
  // choose point a as (1,1,0), b as (-1,1,0), c as (-1,-1,0)
     if (plane->texImg != NULL && plane->textureMap != NULL) {}
-    point3D * point_a = newPoint(1,1,0);
+    /*point3D * point_a = newPoint(1,1,0);
     point3D * point_b = newPoint(-1,1,0);
     point3D * point_c = newPoint(-1,-1,0);
     point3D * point_d = newPoint(ray_transformed->d.px, ray_transformed->d.py, ray_transformed->d.pz);
@@ -253,7 +254,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     double beta = point_e->px;
     double gamma = point_e->py;
     double t = point_e->pz;
-    std::cout << beta << " " << gamma << " " << t << std::endl;
+
     // check if it is behind the camera
     if (t < 0) {
       *lambda = -1;
@@ -267,6 +268,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     }
     *lambda = t;
     struct point3D* n_orig = newPoint(0,0,1);
+    n_orig->pw = 0;
     rayPosition(ray_transformed, t, p);
     // check if point p is whithin the plane
     if (p->px < -1 || p->px > 1 || p->py < -1 || p->px > 1) {
@@ -291,7 +293,9 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     free(point_c);
     free(point_d);
     free(point_e);
-    free(n_orig);
+    free(n_orig);*/
+
+
 
 
 }
@@ -358,6 +362,7 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
  free(e_minus_c);
  free(normal);
     //std::cout << *lambda << std::endl;
+  std::cout << *lambda << std::endl;
 }
 
 void loadTexture(struct object3D *o, const char *filename)
