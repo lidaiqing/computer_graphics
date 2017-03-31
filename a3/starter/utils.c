@@ -260,72 +260,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  // With normal vector (0,0,1) (i.e. parallel to the XY plane)
  // choose point a as (1,1,0), b as (-1,1,0), c as (-1,-1,0)
     if (plane->texImg != NULL && plane->textureMap != NULL) {}
-    /*point3D * point_a = newPoint(1,1,0);
-    point3D * point_b = newPoint(-1,1,0);
-    point3D * point_c = newPoint(-1,-1,0);
-    point3D * point_d = newPoint(ray_transformed->d.px, ray_transformed->d.py, ray_transformed->d.pz);
-    point3D * point_e = newPoint(ray_transformed->p0.px, ray_transformed->p0.py, ray_transformed->p0.pz);
 
-    double  A[4][4];
-    double  A_T[4][4];
-    // build matrix A
-    subVectors(point_a, point_b);
-    subVectors(point_a, point_c);
-    A[0][0] = point_b->px, A[0][1] = point_c->px, A[0][2] = point_d->px, A[0][3] = 0;
-    A[1][0] = point_b->py, A[1][1] = point_c->py, A[1][2] = point_d->py, A[1][3] = 0;
-    A[2][0] = point_b->pz, A[2][1] = point_c->pz, A[2][2] = point_d->pz, A[2][3] = 0;
-    A[3][0] = 0, A[3][1] = 0, A[3][2] = 0, A[3][3] = 1;
-    subVectors(point_a, point_e);
-    invert(&A[0][0], &A_T[0][0]);
-    matVecMult(A_T, point_e);
-    // result stores in point_e
-    double beta = point_e->px;
-    double gamma = point_e->py;
-    double t = point_e->pz;
-
-    // check if it is behind the camera
-    if (t < 0) {
-      *lambda = -1;
-      free(ray_transformed);
-      free(point_a);
-      free(point_b);
-      free(point_c);
-      free(point_d);
-      free(point_e);
-      return;
-    }
-    *lambda = t;
-    struct point3D* n_orig = newPoint(0,0,1);
-    n_orig->pw = 0;
-    rayPosition(ray_transformed, t, p);
-    // check if point p is whithin the plane
-    if (p->px < -1 || p->px > 1 || p->py < -1 || p->px > 1) {
-      *lambda = -1;
-      free(ray_transformed);
-      free(point_a);
-      free(point_b);
-      free(point_c);
-      free(point_d);
-      free(point_e);
-      free(n_orig);
-      return;
-    }
-    // transform back to world space
-    matVecMult(plane->T, p);
-    n->px = n_orig->px;
-    n->py = n_orig->py;
-    n->pz = n_orig->pz;
-    n->pw = 0;
-    normalTransform(n_orig, n, plane);
-    // free space
-    free(ray_transformed);
-    free(point_a);
-    free(point_b);
-    free(point_c);
-    free(point_d);
-    free(point_e);
-    free(n_orig);
-*/
 
 
 
@@ -343,12 +278,11 @@ struct ray3D *transformed_ray = newRay(&ray->p0, &ray->d);
 rayTransform(ray,transformed_ray,sphere);
 /* Coefficient to solve the quadratic equation */
 double coe_a,coe_b,coe_c;
-struct point3D *e_minus_c=newPoint(0,0,0);
+struct point3D *e_minus_c=newPoint(transformed_ray->p0.px,transformed_ray->p0.py,transformed_ray->p0.pz);
 struct point3D *intersection=newPoint(0,0,0);
 /* d dot d */
 coe_a = dot(&(transformed_ray->d),&(transformed_ray->d));
 /* A point structure to store he value of light_source minus the origin */
-subVectors((e_minus_c),&(transformed_ray->p0));
 /* d dot e-c */
 coe_b = (double)2*dot(&(transformed_ray->d),e_minus_c);
 /* e-c dot e-c */
@@ -387,12 +321,23 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
  /* transfer model space intersection to world space intersection */
  matVecMult(sphere->T,intersection);
 
- *p=*intersection;
- *n=*world_normal;
+ p->px = intersection->px;
+ p->py = intersection->py;
+ p->pz = intersection->pz;
+ p->pw = 1;
+
+ n->px = world_normal->px;
+ n->py = world_normal->py;
+ n->pz = world_normal->pz;
+ n->pw = 0;
+
+ //std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << " " << n->pw << std::endl;
+ //std::cout<<"point " << p->px << " " << p->py << " " << p->pz << " " << p->pw << std::endl;
 
  free(e_minus_c);
  free(normal);
-    //std::cout << *lambda << std::endl;
+
+  //std::cout<< " Sphere: " << *lambda << std::endl;
 }
 
 void loadTexture(struct object3D *o, const char *filename)

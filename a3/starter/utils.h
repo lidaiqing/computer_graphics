@@ -183,11 +183,11 @@ inline struct point3D *getReflectionDirection(struct point3D* orig_direction, st
     // calculate reflection direction
     double scale = -2 * dot(&L, &N);
     scaleVector(scale, &N);
-    subVectors(&L, &N);
-    N.pw = 0;
-    normalize(&N);
-    //result stores in N
-    struct point3D* R = newPoint(N.px, N.py, N.pz);
+    subVectors(&N, &L);
+    L.pw = 0;
+    normalize(&L);
+    //result stores in L
+    struct point3D* R = newPoint(L.px, L.py, L.pz);
     // R is a direction
     R->pw = 0;
     return R;
