@@ -80,14 +80,14 @@ void buildScene(void)
  insertObject(o,&object_list);			// Insert into object list
 
  // Let's add a couple spheres
- o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,6);
+ o=newSphere(.05,.95,.35,.75,1,.25,.25,1,1,6);
  Scale(o,.75,.5,1.5);
  RotateY(o,PI/2);
  Translate(o,-1.45,1.1,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
 
- o=newSphere(.05,.95,.95,.75,.75,.95,.55,1,1,6);
+ o=newSphere(.05,.95,.35,.75,.75,.95,.55,1,1,6);
  Scale(o,.5,2.0,1.0);
  RotateZ(o,PI/1.5);
  Translate(o,1.75,1.25,5.0);
@@ -255,12 +255,22 @@ void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, 
     //std::cout<<"reflect " << R->px << " " << R->py << " " << R->pz << std::endl;
     // avoid redundant computation
     double c1 = max(0, dot(&N, &neg_L));
-    //std::cout<<"dot: " << c1 << std::endl;
+    //std::cout<<"dot1: " << c1 << std::endl;
     double c2 = pow(max(0, dot(R, &V)), obj->shinyness);
+    double c3 = obj->alb.rg;
+    //std::cout<<"dot2: " << c2 << std::endl;
     // multiply ambient and difuse terms by its color
-    col->R += (obj->alb.ra * light->col.R + obj->alb.rd * c1 * light->col.R) * CR + obj->alb.rs * c2 * light->col.R;
-    col->G += (obj->alb.ra * light->col.G + obj->alb.rd * c1 * light->col.G) * CG + obj->alb.rs * c2 * light->col.G;
-    col->B += (obj->alb.ra * light->col.B + obj->alb.rd * c1 * light->col.B) * CB + obj->alb.rs * c2 * light->col.B;
+    double cal_R = (obj->alb.ra * light->col.R + obj->alb.rd * c1 * light->col.R) * CR + obj->alb.rs * c2 * light->col.R;
+    double cal_G = (obj->alb.ra * light->col.G + obj->alb.rd * c1 * light->col.G) * CG + obj->alb.rs * c2 * light->col.G;
+    double cal_B = (obj->alb.ra * light->col.B + obj->alb.rd * c1 * light->col.B) * CB + obj->alb.rs * c2 * light->col.B;
+    if (depth != 1) {
+      cal_R *= c3;
+      cal_G *= c3;
+      cal_B *= c3;
+    }
+    col->R += cal_R;
+    col->G += cal_G;
+    col->B += cal_B;
     free(R);
 }
 void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double a, double b, struct colourRGB *col)
@@ -650,6 +660,11 @@ int main(int argc, char *argv[])
     *(rgbIm + 3 * (j * sx  + i)) = col.R * 255;
     *(rgbIm + 3 * (j * sx  + i) + 1) = col.G * 255;
     *(rgbIm + 3 * (j * sx  + i) + 2) = col.B * 255;
+
+    //std::cout << col.R << " " << col.G << " " << col.B << std::endl;
+    //fprintf(stderr, "RGB is: %0.2f, %0.2f, %0.2f\n", col.R, col.G, col.B);
+    //memcpy((unsigned char *)im->rgbdata+(j*sx+i)*3, &col, sizeof(struct colourRGB));
+
   } // end for i
  } // end for j
 

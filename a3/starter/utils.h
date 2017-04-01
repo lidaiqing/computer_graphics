@@ -181,7 +181,7 @@ inline struct point3D *getReflectionDirection(struct point3D* orig_direction, st
     D.px = orig_direction->px, D.py = orig_direction->py, D.pz = orig_direction->pz, D.pw = 0;
     normalize(&D);
     // calculate reflection direction
-    double scale = -2 * dot(&D, &N);
+    double scale = 2 * dot(&D, &N);
     scaleVector(scale, &N);
     subVectors(&N, &D);
     D.pw = 0;
