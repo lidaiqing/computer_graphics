@@ -116,10 +116,13 @@ void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, 
     struct point3D* R;
     struct point3D N;
     struct point3D V;
-    //std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << std::endl;
+    struct point3D neg_L;
+    //if (obj == NULL) return;
     //std::cout<<"point " << p->px << " " << p->py << " " << p->pz << std::endl;
     N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = 0;
     normalize(&N);
+    //std::cout<<"normal " << N.px << " " << N.py << " " << N.pz << std::endl;
+
     //if (obj->intersect == sphereIntersect)
     //    std::cout<<"normal " << N.px << " " << N.py << " " << N.pz << std::endl;
     // viewpoint V vector
@@ -128,16 +131,22 @@ void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, 
     // calculate light direction L
     L.px = p->px, L.py = p->py, L.pz = p->pz, L.pw = 1;
     subVectors(&light->p0, &L);
-    // L is direction
+    // L is a direction
     L.pw = 0;
     normalize(&L);
-    //std::cout<<"direction " << L.px << " " << L.py << " " << L.pz << std::endl;
+    //std::cout<<"light " << L.px << " " << L.py << " " << L.pz << std::endl;
+
+    //std::cout<<"direction " << L.px << " " << L.py << " " << L.pz << std::endl
+
+    // calculate p0 to light
+    neg_L.px = -L.px, neg_L.py = -L.py, neg_L.pz = -L.pz, neg_L.pw = 0;
     // calculate reflection direction
     R = getReflectionDirection(&L, p, n);
+    //std::cout<<"reflect " << R->px << " " << R->py << " " << R->pz << std::endl;
     // avoid redundant computation
-    double c1 = max(0, dot(&N, &L));
+    double c1 = max(0, dot(&N, &neg_L));
     //std::cout<<"dot: " << c1 << std::endl;
-    double c2 = pow(max(0, dot(&V, R)), obj->shinyness);
+    double c2 = pow(max(0, dot(R, &V)), obj->shinyness);
     // multiply ambient and difuse terms by its color
     col->R += (obj->alb.ra * light->col.R + obj->alb.rd * c1 * light->col.R) * CR + obj->alb.rs * c2 * light->col.R;
     col->G += (obj->alb.ra * light->col.G + obj->alb.rd * c1 * light->col.G) * CG + obj->alb.rs * c2 * light->col.G;
@@ -217,15 +226,15 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
         phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
     }
     // reflection ray
-    /*struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
+    struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
     rayTrace(reflectedRay, depth + 1, col, obj);
     free(reflectedRay);
-*/
+
     // refraction ray
     /*struct ray3D* refractedRay = getRefractionRay(ray, obj, obj, p, n);
     rayTrace(refractedRay, depth + 1, col, obj);
-
-    free(refractedRay);*/
+*/
+    //free(refractedRay);
     lightPtr = lightPtr->next;
  }
     col->R += tmp_col.R;
@@ -253,49 +262,36 @@ void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct
  /////////////////////////////////////////////////////////////
  // Inserts an object into the object list.
  /* Set lambda to equal to -1 to indicate the ray does not intersect any object */
- *lambda=-1;
+ *lambda = -1;
+ *obj = NULL;
  /* set to -1 so the default is invalid */
- int found=0;
- struct object3D *best_obj;
- struct object3D *iterator = object_list;
- double minimum = 100000;
- while(iterator != NULL)
- {
-
-    iterator->intersect(iterator, ray, lambda, p, n, a, b);
-    /* Indicates we find a object that the ray hits */
-    if((*lambda) != -1)
-    {
-      //if (iterator->intersect == sphereIntersect)
-        //std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << " " << n->pw << std::endl;
-    /* need to return the first object this ray intersects */
-        /*  Check the intersection object isn't the source itself */
-        if(iterator != Os)
-        {
-
-        if(*lambda < minimum)
-            {
-            found = 1;
-            minimum = *lambda;
-            best_obj = iterator;
-            }
-        }
-    }
-    /* Keep searching in the list */
-    iterator = iterator->next;
+ struct object3D *objPtr = object_list;
+ struct object3D *best_obj = NULL;
+ double min_lambda = 10000;
+ double cur_lambda;
+ struct point3D cur_p, cur_n;
+ double cur_a, cur_b;
+ while (objPtr) {
+   if (objPtr == Os) {
+     objPtr = objPtr->next;
+     continue;
+   }
+   cur_lambda = -1;
+   objPtr->intersect(objPtr, ray, &cur_lambda, &cur_p, &cur_n, &cur_a, &cur_b);
+   if (cur_lambda > 0 && cur_lambda < min_lambda) {
+     min_lambda = cur_lambda;
+     best_obj = objPtr;
+     *p = cur_p;
+     *n = cur_n;
+     *a = cur_a;
+     *b = cur_b;
+   }
+   objPtr = objPtr->next;
  }
-
- /* meaning find some valid intersections */
- if(found)
- {
-  *lambda = minimum;
-  *(obj) = best_obj;
- }
- else
- {
-  *(obj) = NULL;
- }
- return;
+if (min_lambda != 10000) {
+  *obj = best_obj;
+  *lambda = min_lambda;
+}
 
 }
 
@@ -320,29 +316,17 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  struct point3D n;	// Normal at intersection
  struct colourRGB I;	// Colour returned by shading function
 
- /*if (depth>MAX_DEPTH)	// Max recursion depth reached. Return invalid colour.
- {
-  col->R=-1;
-  col->G=-1;
-  col->B=-1;
-  return;
- }*/
  ///////////////////////////////////////////////////////
  // TO DO: Complete this function. Refer to the notes
  // if you are unsure what to do here.
  ///////////////////////////////////////////////////////
  /* obj is null because it is the first recursion so not from any object */
  /* By the end of this function call, obj will point to the object this ray firstly intersects */
- findFirstHit(ray,&lambda,Os,&(obj),&p,&n,&a,&b);
+ findFirstHit(ray, &lambda, Os, &obj, &p, &n, &a, &b);
   /* this ray hits something */
-    if(lambda != -1 )
+    if(lambda != -1)
     {
-      //std::cout << obj->alpha << std::endl;
-      rtShade(obj,&p,&n,ray,depth,a,b,col);
-    }
-    else
-    {
-    return;
+      rtShade(obj, &p, &n, ray, depth, a, b, col);
     }
 }
 

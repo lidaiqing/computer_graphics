@@ -81,6 +81,7 @@ inline void rayTransform(struct ray3D *ray_orig, struct ray3D *ray_transformed, 
     // transform ray by obj's inverse matrix
     matVecMult(obj->Tinv, &ray_transformed->p0);
     matVecMult(obj->Tinv, &ray_transformed->d);
+    ray_transformed->d.pw = 0;
 }
 
 inline void normalTransform(struct point3D *n_orig, struct point3D *n_transformed, struct object3D *obj)
@@ -120,7 +121,7 @@ inline void normalTransform(struct point3D *n_orig, struct point3D *n_transforme
 
  //Multiply the matrix with the normal vector//
  matVecMult(Tinv_transpose3x3, n_transformed);
-
+ n_transformed->pw = 0;
 }
 
 /////////////////////////////////////////////
@@ -240,15 +241,16 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
       return;
     }
     *lambda = t;
-    struct point3D* n_orig = newPoint(0,0,1);
+    struct point3D* n_orig = newPoint(0,0,-1);
     n_orig->pw = 0;
     // transform back to world space
     matVecMult(plane->T, p);
     n->px = 0;
     n->py = 0;
-    n->pz = 1;
+    n->pz = -1;
     n->pw = 0;
     normalTransform(n_orig, n, plane);
+    normalize(n);
     //std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << " " << n->pw << std::endl;
 
     // free space
@@ -305,21 +307,22 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
      }
 
  /* find the point this ray intersect on the sphere*/
- rayPosition(transformed_ray,*lambda,intersection);
+ rayPosition(transformed_ray, *lambda, intersection);
  /* the sphere is at the origin, so the coordinate of the intersection is the direction for the normal */
  struct point3D *normal=newPoint(intersection->px,intersection->py,intersection->pz);
  /* Indicate it is a direction, not a point */
- normal->pw=0;
+ normal->pw = 0;
 
 
  /* Transfer model space normal to world space*/
- struct point3D *world_normal=newPoint(normal->px,normal->py,normal->pz);
+ struct point3D *world_normal = newPoint(normal->px, normal->py, normal->pz);
+ world_normal->pw = 0;
  /* Indicate it is a direction, not a point */
- normalTransform(normal,world_normal,sphere);
+ normalTransform(normal, world_normal, sphere);
  normalize(world_normal);
 
  /* transfer model space intersection to world space intersection */
- matVecMult(sphere->T,intersection);
+ matVecMult(sphere->T, intersection);
 
  p->px = intersection->px;
  p->py = intersection->py;
