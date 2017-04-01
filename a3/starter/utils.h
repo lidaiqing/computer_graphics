@@ -172,22 +172,22 @@ inline struct ray3D *newRay(struct point3D *p0, struct point3D *d)
 
 inline struct point3D *getReflectionDirection(struct point3D* orig_direction, struct point3D* p, struct point3D* n)
 {
-    struct point3D L;
+    struct point3D D;
     struct point3D N;
     // normal direction
     N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = 0;
     normalize(&N);
     // calculate light direction L
-    L.px = orig_direction->px, L.py = orig_direction->py, L.pz = orig_direction->pz, L.pw = 0;
-    normalize(&L);
+    D.px = orig_direction->px, D.py = orig_direction->py, D.pz = orig_direction->pz, D.pw = 0;
+    normalize(&D);
     // calculate reflection direction
-    double scale = -2 * dot(&L, &N);
+    double scale = -2 * dot(&D, &N);
     scaleVector(scale, &N);
-    subVectors(&N, &L);
-    L.pw = 0;
-    normalize(&L);
+    subVectors(&N, &D);
+    D.pw = 0;
+    normalize(&D);
     //result stores in L
-    struct point3D* R = newPoint(L.px, L.py, L.pz);
+    struct point3D* R = newPoint(D.px, D.py, D.pz);
     // R is a direction
     R->pw = 0;
     return R;
