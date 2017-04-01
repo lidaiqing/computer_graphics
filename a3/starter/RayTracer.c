@@ -110,34 +110,170 @@ void buildScene(void)
  //           the relflectance properties of your objects, and the number and type of light sources
  //           in the scene.
 }
+ void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double CR, double CG, double CB, struct colourRGB* col);
+ void areaLighting(struct object3D* obj, struct pointLS* centre_light, struct point3D *p, struct point3D *n,struct ray3D *ray, int depth, double R, double G, double B, struct colourRGB* col, int sample_num )
+ {
+   
+  struct point3D direction;
+  // calculate p to light direction L
+  direction.px = centre_light->p0.px, direction.py = centre_light->p0.py, direction.pz = centre_light->p0.pz, direction.pw = 1;
+  subVectors(p, &direction);
+  direction.pw = 0;
+  /* reverse the direction (light to source direction) */
+  direction.px=-direction.px;
+  direction.py=-direction.py;
+  direction.pz=-direction.pz;   
+  /* find the 'distance' between the light source and the point currently investigated */
+  double distance=dot(&direction,&direction);
+  direction.pw=0;
+  /* Set the light source area to be 5% of the light source distance to the object */ 
+  double areaBoundary = distance*0.003;
+  double sampleBoundary = areaBoundary/(double)sample_num; 
+  double lambda=0;
+  double dummy_value;
+  struct object3D *dummy_obj;
+  struct point3D dummy_point;
+  /* variable to calculate and sotre colours */
+  colourRGB colour;  
+  colour.R=0;
+  colour.G=0;
+  colour.B=0;
+  colourRGB accumulated_colour;
+  accumulated_colour.R=0;
+  accumulated_colour.G=0;
+  accumulated_colour.B=0;
+  /* iterate over an uniform surface */
+  srand(time(NULL)); 
+  int i=0;
+  int j=0;
+  for(i=0;i<sample_num;i++)
+  {
+      for(j=0;j<sample_num;j++)
+      {
+	
+      double x_r=((float) rand() / (float)(RAND_MAX));
+      //std::cout<<" x_r: "<<x_r<<std::endl;
+      if(i%2!=0)
+      {
+      x_r=-x_r; 
+      }
+      double y_r=((float) rand() / (float)(RAND_MAX));
+      if(j%2!=0)
+      {
+      y_r=-y_r; 
+      }
+      /* get randomly generated x and y offset */
+      double x_offset=sampleBoundary*x_r*0.2;
+      double y_offset=sampleBoundary*y_r*0.2;
+      
+      double change_in_x=(-0.5*areaBoundary+(double)i*sampleBoundary+0.5*sampleBoundary+x_offset);
+      double change_in_y=(0.5*areaBoundary-(double)j*sampleBoundary-0.5*sampleBoundary+y_offset);
+      double change_in_z=(-(double)direction.px*change_in_x-(double)direction.py*change_in_y)/(-direction.pz);
+   
+      /* randomly offset the light source position */
+      struct point3D origin;
+      struct point3D changed_direction;
+      origin.px=centre_light->p0.px+change_in_x;
+      origin.py=centre_light->p0.py+change_in_y;
+      origin.pz=centre_light->p0.pz+change_in_z;
+      origin.pw=1;
+      
+      changed_direction.px=p->px-origin.px;
+      changed_direction.py=p->py-origin.py;
+      changed_direction.pz=p->pz-origin.pz;
+      changed_direction.pw=0;
+      normalize(&changed_direction);
+      ray3D *test_ray=newRay(&origin, &changed_direction);
+      /* test if the altered ray can reach this point */
+      findFirstHit(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+      free(test_ray);
+         
+      if (lambda > 0) {
+        // do not add contribute to color
+      } else {	
+	struct pointLS *sample_light=(struct pointLS *)malloc(sizeof(struct pointLS));
+	sample_light->col.R = centre_light->col.R;
+	sample_light->col.G = centre_light->col.G;
+	sample_light->col.B = centre_light->col.B;	
+	sample_light->p0.px = origin.px;
+	sample_light->p0.py = origin.py;
+	sample_light->p0.pz = origin.pz;
+	sample_light->next=NULL;
+        phongModel(obj,sample_light,p,n,ray,depth,R,G,B,&colour);
+	free(sample_light);
+	
+	accumulated_colour.R+=colour.R;
+	accumulated_colour.G+=colour.G;
+	accumulated_colour.B+=colour.B;
+      }
+  
+      colour.R=0;
+      colour.G=0;
+      colour.B=0;
+      
+      }
+  }
+  
+  col->R+=accumulated_colour.R/(double)(sample_num*sample_num);
+  col->G+=accumulated_colour.G/(double)(sample_num*sample_num);
+  col->B+=accumulated_colour.B/(double)(sample_num*sample_num);
+  
+ };
+
 void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double CR, double CG, double CB, struct colourRGB* col)
 {
     struct point3D L;
     struct point3D* R;
     struct point3D N;
     struct point3D V;
-    //std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << std::endl;
-    //std::cout<<"point " << p->px << " " << p->py << " " << p->pz << std::endl;
+        
     N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = 0;
     normalize(&N);
-    //if (obj->intersect == sphereIntersect)
-    //    std::cout<<"normal " << N.px << " " << N.py << " " << N.pz << std::endl;
+    
     // viewpoint V vector
-    V.px = -ray->d.px, V.py = -ray->d.py, V.pz = -ray->d.pz, V.pw = 0;
+    V.px = ray->d.px, V.py = ray->d.py, V.pz = ray->d.pz, V.pw = 0;
     normalize(&V);
+          
     // calculate light direction L
-    L.px = p->px, L.py = p->py, L.pz = p->pz, L.pw = 1;
-    subVectors(&light->p0, &L);
+    L.px = light->p0.px, L.py = light->p0.py, L.pz = light->p0.pz, L.pw = 1;
+    subVectors(p, &L);
+    
+    
     // L is direction
     L.pw = 0;
     normalize(&L);
+    
+    //Reverse light
+    point3D reverse_light;
+    reverse_light.px=0;
+    reverse_light.py=0;
+    reverse_light.pz=0;
+    subVectors(&L,&reverse_light);
+    
     //std::cout<<"direction " << L.px << " " << L.py << " " << L.pz << std::endl;
     // calculate reflection direction
+    
     R = getReflectionDirection(&L, p, n);
+    
+    //Reverse reflected light
+    point3D reverse_reflection;
+    reverse_reflection.px=0;
+    reverse_reflection.py=0;
+    reverse_reflection.pz=0;
+    subVectors(R,&reverse_reflection);
+    
+    
     // avoid redundant computation
-    double c1 = max(0, dot(&N, &L));
-    //std::cout<<"dot: " << c1 << std::endl;
-    double c2 = pow(max(0, dot(&V, R)), obj->shinyness);
+    double c1 = max(0, dot(&N, &reverse_light));
+    double c2 = pow(max(0, dot(&V, &reverse_reflection)), obj->shinyness);
+     
+    //std::cout<<" Magnitude: "<<dot(&V, &reverse_reflected)<<std::endl;
+     //if(c2!=0)
+     //{
+     //  std::cout<<"Not zero!"<<std::endl;
+     //  std::cout<<"c2: "<<c2<<std::endl;
+     //}
+    
     // multiply ambient and difuse terms by its color
     col->R += (obj->alb.ra * light->col.R + obj->alb.rd * c1 * light->col.R) * CR + obj->alb.rs * c2 * light->col.R;
     col->G += (obj->alb.ra * light->col.G + obj->alb.rd * c1 * light->col.G) * CG + obj->alb.rs * c2 * light->col.G;
@@ -195,42 +331,50 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     return;
   }
  // Loop through each light source
+ int counter=0;
  struct pointLS* lightPtr = light_list;
  while (lightPtr) {
     // check if the ray can reach this light source
-    double lambda;
-    struct object3D *dummy_obj;
-    struct point3D dummy_point;
-    double dummy_value;
-    struct point3D L;
+    areaLighting(obj,lightPtr,p,n,ray,depth,R,G,B,&tmp_col,7);
+    
+  //  double lambda;
+  //  struct object3D *dummy_obj;
+  //  struct point3D dummy_point;
+  //  double dummy_value;
+  //  struct point3D L;
     // calculate p to light direction L
-    L.px = lightPtr->p0.px, L.py = lightPtr->p0.py, L.pz = lightPtr->p0.pz, L.pw = 1;
-    subVectors(p, &L);
-    L.pw = 0;
-    normalize(&L);
-    struct ray3D* test_ray = newRay(p, &L);
+  //   L.px = lightPtr->p0.px, L.py = lightPtr->p0.py, L.pz = lightPtr->p0.pz, L.pw = 1;
+  //   subVectors(p, &L);
+  //   L.pw = 0;
+  //  normalize(&L);
+  //  struct ray3D* test_ray = newRay(p, &L);
+    
+   
 
-    findFirstHit(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
-    if (lambda > 0) {
+  //  findFirstHit(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+  //  if (lambda > 0) {
         // do not add contribute to color
-    } else {
-        phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
-    }
+  //  } else {
+  //      phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
+  //  }
     // reflection ray
+    
     /*struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
     rayTrace(reflectedRay, depth + 1, col, obj);
     free(reflectedRay);
-*/
+    */
+    
     // refraction ray
     /*struct ray3D* refractedRay = getRefractionRay(ray, obj, obj, p, n);
     rayTrace(refractedRay, depth + 1, col, obj);
 
     free(refractedRay);*/
     lightPtr = lightPtr->next;
+    counter++;
  }
-    col->R += tmp_col.R;
-    col->G += tmp_col.G;
-    col->B += tmp_col.B;
+    col->R+= tmp_col.R/((double)counter);
+    col->G+= tmp_col.G/((double)counter);
+    col->B+= tmp_col.B/((double)counter);
  return;
 
 }
@@ -335,7 +479,7 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  /* By the end of this function call, obj will point to the object this ray firstly intersects */
  findFirstHit(ray,&lambda,Os,&(obj),&p,&n,&a,&b);
   /* this ray hits something */
-    if(lambda != -1 )
+    if(lambda > 0 )
     {
       //std::cout << obj->alpha << std::endl;
       rtShade(obj,&p,&n,ray,depth,a,b,col);
@@ -345,6 +489,64 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
     return;
     }
 }
+
+ void antialiaing(point3D eye,double x,double y,double z,int multiplier, double pixel_boundary, colourRGB *col )
+ {
+  srand(time(NULL));   
+  colourRGB accumulated_colour;
+  accumulated_colour.R=0;
+  accumulated_colour.G=0;
+  accumulated_colour.B=0;
+  colourRGB colour;
+  double boundary=pixel_boundary/(double)multiplier;
+  int i=0;
+  int j=0;
+  for(i=0;i<multiplier;i++)
+  {
+      for(j=0;j<multiplier;j++)
+      {
+	
+      double x_r=((float) rand() / (float)(RAND_MAX));
+      //std::cout<<" x_r: "<<x_r<<std::endl;
+      if(i%2!=0)
+      {
+      x_r=-x_r; 
+      }
+      double y_r=((float) rand() / (float)(RAND_MAX));
+      if(j%2!=0)
+      {
+      y_r=-y_r; 
+      }
+    
+      double x_offset=boundary*x_r*0.5;
+      double y_offset=boundary*y_r*0.5;
+     
+      
+      point3D direction;
+      direction.px=x-0.5*pixel_boundary+(double)i*boundary+0.5*boundary+x_offset-eye.px;
+      direction.py=y+0.5*pixel_boundary-(double)j*boundary-0.5*boundary-y_offset-eye.py;
+      direction.pz=z;
+      direction.pw=0;
+      normalize(&direction);
+      ray3D *ray=newRay(&eye, &direction);
+      
+      rayTrace(ray,1,&colour,NULL);
+      accumulated_colour.R+=colour.R;
+      accumulated_colour.G+=colour.G;
+      accumulated_colour.B+=colour.B;
+      free(ray);
+      colour.R=0;
+      colour.G=0;
+      colour.B=0;
+      }
+  }
+  
+  col->R=accumulated_colour.R/(double)(multiplier*multiplier);
+  col->G=accumulated_colour.G/(double)(multiplier*multiplier);
+  col->B=accumulated_colour.B/(double)(multiplier*multiplier);
+  
+ };
+ 
 
 int main(int argc, char *argv[])
 {
@@ -485,7 +687,10 @@ int main(int argc, char *argv[])
  printmatrix(cam->W2C);
  fprintf(stderr,"\n");
 
+ 
+ 
  struct point3D ray_direction;
+
  fprintf(stderr,"Rendering row: ");
  for (j=0;j<sx;j++)		// For each of the pixels in the image
  {
@@ -502,10 +707,8 @@ int main(int argc, char *argv[])
     //         raytracing!
     ///////////////////////////////////////////////////////////////////
     col.R = col.G = col.B = 0;
-    rayTrace(ray,1,&col,NULL);
-    //std::cout << col.R << " " << col.G << " " << col.B << std::endl;
-    //fprintf(stderr, "RGB is: %0.2f, %0.2f, %0.2f\n", col.R, col.G, col.B);
-    //memcpy((unsigned char *)im->rgbdata+(j*sx+i)*3, &col, sizeof(struct colourRGB));
+    antialiaing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f),8,du, &col );
+    //rayTrace(ray,1,&col,NULL);
     *(rgbIm + 3 * (j * sx  + i)) = col.R * 255;
     *(rgbIm + 3 * (j * sx  + i) + 1) = col.G * 255;
     *(rgbIm + 3 * (j * sx  + i) + 2) = col.B * 255;

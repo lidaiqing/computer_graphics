@@ -294,15 +294,27 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
     {
      /* no intersection found*/
      *lambda=-1;
+     free(e_minus_c);
+     free(intersection);
+     free(transformed_ray);
      return;
     }
 
-    *lambda=min((-coe_b-(double)sqrt(under_root))/(2*coe_a),(-coe_b+(double)sqrt(under_root))/(2*coe_a));
-     if(*lambda<0)
-     {
-     *lambda=-1;
-     return;
-     }
+    *lambda = (-coe_b-(double)sqrt(under_root))/(2*coe_a);
+    if(*lambda<0)
+	{
+   	*lambda = (-coe_b+(double)sqrt(under_root)/(2*coe_a));
+	}
+
+         
+    // if(*lambda<0)
+    // {
+    // *lambda=-1;
+    // free(e_minus_c);
+    // free(intersection);
+    // free(transformed_ray);
+    // return;
+    // }
 
  /* find the point this ray intersect on the sphere*/
  rayPosition(transformed_ray,*lambda,intersection);
@@ -336,8 +348,10 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
 
  free(e_minus_c);
  free(normal);
-
-  //std::cout<< " Sphere: " << *lambda << std::endl;
+ free(world_normal);
+ free(intersection);
+ free(transformed_ray);
+ std::cout<< " Sphere: " << *lambda << std::endl;
 }
 
 void loadTexture(struct object3D *o, const char *filename)
