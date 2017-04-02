@@ -235,7 +235,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     }
     rayPosition(ray_transformed, t, p);
     // check if it is behind the camera
-    if (p->px < -1 || p->px > 1 || p->py < -1 || p->px > 1) {
+    if (p->px < -1 || p->px > 1 || p->py < -1 || p->py > 1) {
       *lambda = -1;
       free(ray_transformed);
       return;
@@ -296,19 +296,13 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
     {
      /* no intersection found*/
      *lambda=-1;
-     free(e_minus_c);
-     free(intersection);
-     free(transformed_ray);
      return;
     }
 
-    *lambda = (-coe_b-(double)sqrt(under_root))/(2*coe_a);        
+    *lambda=min((-coe_b-(double)sqrt(under_root))/(2*coe_a),(-coe_b+(double)sqrt(under_root))/(2*coe_a));
      if(*lambda<0)
      {
      *lambda=-1;
-     free(e_minus_c);
-     free(intersection);
-     free(transformed_ray);
      return;
      }
 
@@ -345,9 +339,8 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
 
  free(e_minus_c);
  free(normal);
- free(world_normal);
- free(intersection);
- free(transformed_ray);
+
+  //std::cout<< " Sphere: " << *lambda << std::endl;
 }
 
 void loadTexture(struct object3D *o, const char *filename)
