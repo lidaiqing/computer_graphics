@@ -280,8 +280,8 @@ struct ray3D *transformed_ray = newRay(&ray->p0, &ray->d);
 rayTransform(ray,transformed_ray,sphere);
 /* Coefficient to solve the quadratic equation */
 double coe_a,coe_b,coe_c;
-struct point3D *e_minus_c=newPoint(transformed_ray->p0.px,transformed_ray->p0.py,transformed_ray->p0.pz);
-struct point3D *intersection=newPoint(0,0,0);
+struct point3D *e_minus_c = newPoint(transformed_ray->p0.px,transformed_ray->p0.py,transformed_ray->p0.pz);
+struct point3D *intersection = newPoint(0,0,0);
 /* d dot d */
 coe_a = dot(&(transformed_ray->d),&(transformed_ray->d));
 /* A point structure to store he value of light_source minus the origin */
@@ -296,14 +296,20 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
     {
      /* no intersection found*/
      *lambda=-1;
+     free(transformed_ray);
+     free(e_minus_c);
+     free(intersection);
      return;
     }
 
     *lambda=min((-coe_b-(double)sqrt(under_root))/(2*coe_a),(-coe_b+(double)sqrt(under_root))/(2*coe_a));
      if(*lambda<0)
      {
-     *lambda=-1;
-     return;
+       free(transformed_ray);
+       free(e_minus_c);
+       free(intersection);
+       *lambda  = -1;
+       return;
      }
 
  /* find the point this ray intersect on the sphere*/
@@ -334,13 +340,12 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
  n->pz = world_normal->pz;
  n->pw = 0;
 
- //std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << " " << n->pw << std::endl;
- //std::cout<<"point " << p->px << " " << p->py << " " << p->pz << " " << p->pw << std::endl;
 
+ free(transformed_ray);
+ free(intersection);
  free(e_minus_c);
  free(normal);
-
-  //std::cout<< " Sphere: " << *lambda << std::endl;
+ free(world_normal);
 }
 
 void loadTexture(struct object3D *o, const char *filename)

@@ -483,20 +483,14 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
       normalize(&direction);
       ray3D *ray=newRay(&eye, &direction);
 
-      rayTrace(ray,1,&colour,NULL);
-      accumulated_colour.R+=colour.R;
-      accumulated_colour.G+=colour.G;
-      accumulated_colour.B+=colour.B;
+      rayTrace(ray,1,&accumulated_colour,NULL);
       free(ray);
-      colour.R=0;
-      colour.G=0;
-      colour.B=0;
       }
   }
 
-  col->R=accumulated_colour.R/(double)(multiplier*multiplier);
-  col->G=accumulated_colour.G/(double)(multiplier*multiplier);
-  col->B=accumulated_colour.B/(double)(multiplier*multiplier);
+  col->R += (accumulated_colour.R / (multiplier*multiplier));
+  col->G += (accumulated_colour.G / (multiplier*multiplier));
+  col->B += (accumulated_colour.B / (multiplier*multiplier));
 
  };
 
@@ -664,8 +658,10 @@ int main(int argc, char *argv[])
     struct colourRGB col_thread;
     col_thread.R = col_thread.G = col_thread.B = 0;
 
-    if (antialiasing) add_antialiasing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f),5,du, &col_thread );
-    rayTrace(ray_thread, 1, &col_thread, NULL);
+    if (antialiasing) {
+      add_antialiasing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f), 4, du, &col_thread);
+    }
+    else rayTrace(ray_thread, 1, &col_thread, NULL);
     *(rgbIm + 3 * (j * sx  + i)) = col_thread.R * 255 > 255 ? 255 : col_thread.R * 255;
     *(rgbIm + 3 * (j * sx  + i) + 1) = col_thread.G * 255 > 255 ? 255 : col_thread.G * 255;
     *(rgbIm + 3 * (j * sx  + i) + 2) = col_thread.B * 255 > 255 ? 255 : col_thread.B * 255;
