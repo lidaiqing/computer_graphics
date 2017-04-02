@@ -151,5 +151,6 @@ void buildScene(void);											// Scene set up. Defines objects and object tra
 void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object3D *Os);		// RayTracing routine
 void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b);
 void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n,struct ray3D *ray, int depth, double a, double b, struct colourRGB *col);
-void phongModel(struct object3D* obj, struct point3D *p, struct point3D *n, struct ray3D *ray);
+void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double CR, double CG, double CB, struct colourRGB* col);
+void areaLighting(struct object3D* obj, struct pointLS* centre_light, struct point3D *p, struct point3D *n,struct ray3D *ray, int depth, double R, double G, double B, struct colourRGB* col, int sample_num);
 #endif

@@ -110,7 +110,6 @@ void buildScene(void)
  //           the relflectance properties of your objects, and the number and type of light sources
  //           in the scene.
 }
- void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double CR, double CG, double CB, struct colourRGB* col);
  void areaLighting(struct object3D* obj, struct pointLS* centre_light, struct point3D *p, struct point3D *n,struct ray3D *ray, int depth, double R, double G, double B, struct colourRGB* col, int sample_num )
  {
    
@@ -127,17 +126,13 @@ void buildScene(void)
   double distance=dot(&direction,&direction);
   direction.pw=0;
   /* Set the light source area to be 5% of the light source distance to the object */ 
-  double areaBoundary = distance*0.003;
-  double sampleBoundary = areaBoundary/(double)sample_num; 
+  double areaBoundary = distance*0.002;
+  double sampleBoundary = areaBoundary / (double)sample_num; 
   double lambda=0;
   double dummy_value;
   struct object3D *dummy_obj;
   struct point3D dummy_point;
   /* variable to calculate and sotre colours */
-  colourRGB colour;  
-  colour.R=0;
-  colour.G=0;
-  colour.B=0;
   colourRGB accumulated_colour;
   accumulated_colour.R=0;
   accumulated_colour.G=0;
@@ -155,7 +150,7 @@ void buildScene(void)
       //std::cout<<" x_r: "<<x_r<<std::endl;
       if(i%2!=0)
       {
-      x_r=-x_r; 
+       x_r=-x_r; 
       }
       double y_r=((float) rand() / (float)(RAND_MAX));
       if(j%2!=0)
@@ -163,8 +158,8 @@ void buildScene(void)
       y_r=-y_r; 
       }
       /* get randomly generated x and y offset */
-      double x_offset=sampleBoundary*x_r*0.2;
-      double y_offset=sampleBoundary*y_r*0.2;
+      double x_offset=sampleBoundary*x_r*0.1;
+      double y_offset=sampleBoundary*y_r*0.1;
       
       double change_in_x=(-0.5*areaBoundary+(double)i*sampleBoundary+0.5*sampleBoundary+x_offset);
       double change_in_y=(0.5*areaBoundary-(double)j*sampleBoundary-0.5*sampleBoundary+y_offset);
@@ -178,12 +173,13 @@ void buildScene(void)
       origin.pz=centre_light->p0.pz+change_in_z;
       origin.pw=1;
       
-      changed_direction.px=p->px-origin.px;
-      changed_direction.py=p->py-origin.py;
-      changed_direction.pz=p->pz-origin.pz;
+      changed_direction.px=origin.px - p->px;
+      changed_direction.py=origin.py - p->py;
+      changed_direction.pz=origin.pz - p->pz;
       changed_direction.pw=0;
+      
       normalize(&changed_direction);
-      ray3D *test_ray=newRay(&origin, &changed_direction);
+      ray3D *test_ray=newRay(p, &changed_direction);
       /* test if the altered ray can reach this point */
       findFirstHit(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
       free(test_ray);
@@ -198,25 +194,16 @@ void buildScene(void)
 	sample_light->p0.px = origin.px;
 	sample_light->p0.py = origin.py;
 	sample_light->p0.pz = origin.pz;
-	sample_light->next=NULL;
-        phongModel(obj,sample_light,p,n,ray,depth,R,G,B,&colour);
+	sample_light->next = NULL;
+        phongModel(obj,sample_light,p,n,ray,depth,R,G,B,&accumulated_colour);
 	free(sample_light);
-	
-	accumulated_colour.R+=colour.R;
-	accumulated_colour.G+=colour.G;
-	accumulated_colour.B+=colour.B;
       }
-  
-      colour.R=0;
-      colour.G=0;
-      colour.B=0;
-      
       }
   }
   
-  col->R+=accumulated_colour.R/(double)(sample_num*sample_num);
-  col->G+=accumulated_colour.G/(double)(sample_num*sample_num);
-  col->B+=accumulated_colour.B/(double)(sample_num*sample_num);
+  col->R += (accumulated_colour.R / (sample_num * sample_num));
+  col->G += (accumulated_colour.G / (sample_num * sample_num));
+  col->B += (accumulated_colour.B / (sample_num * sample_num));
   
  };
 
@@ -324,31 +311,21 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     return;
   }
  // Loop through each light source
- int counter=0;
  struct pointLS* lightPtr = light_list;
  while (lightPtr) {
-    // check if the ray can reach this light source
-    areaLighting(obj,lightPtr,p,n,ray,depth,R,G,B,&tmp_col,7);
-        
-    /*struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
-    rayTrace(reflectedRay, depth + 1, col, obj);
-    free(reflectedRay);
-    */
-    
+    //free(refractedRay);
+    areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 6);
+    lightPtr = lightPtr->next;
+    //counter++;
+ }
+     // reflection ray  
     struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
     rayTrace(reflectedRay, depth + 1, col, obj);
     free(reflectedRay);
-    // refraction ray
-    /*struct ray3D* refractedRay = getRefractionRay(ray, obj, obj, p, n);
-    rayTrace(refractedRay, depth + 1, col, obj);
-*/
-    //free(refractedRay);
-    lightPtr = lightPtr->next;
-    counter++;
- }
-    col->R+= tmp_col.R/((double)counter);
-    col->G+= tmp_col.G/((double)counter);
-    col->B+= tmp_col.B/((double)counter);
+    
+    col->R+= tmp_col.R;
+    col->G+= tmp_col.G;
+    col->B+= tmp_col.B;
  return;
 
 }
@@ -455,7 +432,6 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
       {
 	
       double x_r=((float) rand() / (float)(RAND_MAX));
-      //std::cout<<" x_r: "<<x_r<<std::endl;
       if(i%2!=0)
       {
       x_r=-x_r; 
@@ -655,11 +631,11 @@ int main(int argc, char *argv[])
     //         raytracing!
     ///////////////////////////////////////////////////////////////////
     col.R = col.G = col.B = 0;
-    //antialiaing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f),4,du, &col );
-    rayTrace(ray,1,&col,NULL);
-    *(rgbIm + 3 * (j * sx  + i)) = col.R * 255;
-    *(rgbIm + 3 * (j * sx  + i) + 1) = col.G * 255;
-    *(rgbIm + 3 * (j * sx  + i) + 2) = col.B * 255;
+    if (antialiasing) antialiaing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f),5,du, &col );
+    //rayTrace(ray,1,&col,NULL);
+    *(rgbIm + 3 * (j * sx  + i)) = col.R * 255 > 255 ? 255 : col.R * 255;
+    *(rgbIm + 3 * (j * sx  + i) + 1) = col.G * 255 > 255 ? 255 : col.G * 255;
+    *(rgbIm + 3 * (j * sx  + i) + 2) = col.B * 255 > 255 ? 255 : col.B * 255;
 
     //std::cout << col.R << " " << col.G << " " << col.B << std::endl;
     //fprintf(stderr, "RGB is: %0.2f, %0.2f, %0.2f\n", col.R, col.G, col.B);

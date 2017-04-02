@@ -348,7 +348,6 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
  free(world_normal);
  free(intersection);
  free(transformed_ray);
- std::cout<< " Sphere: " << *lambda << std::endl;
 }
 
 void loadTexture(struct object3D *o, const char *filename)
