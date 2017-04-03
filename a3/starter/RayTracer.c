@@ -65,7 +65,7 @@ void buildScene(void)
 
  // Let's add a plane
  // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
- o=newPlane(.05,.45,.75,.75,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
+ o=newPlane(.05,.45,.75,.75,.55,.8,.75,0.7,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
 						// should see some reflections if all is done properly.
 						// Colour is close to cyan, and currently the plane is
 						// completely opaque (alpha=1). The refraction index is
@@ -80,7 +80,7 @@ void buildScene(void)
  insertObject(o,&object_list);			// Insert into object list
 
  // Let's add a couple spheres
- o=newSphere(.05,.95,.55,.55,1,.25,.25,1,1,6);
+ o=newSphere(.05,.95,.55,.55,1,.25,.25,0.7,0.6,6);
  Scale(o,.75,.5,1.5);
  RotateY(o,PI/2);
  Translate(o,-1.45,1.1,3.5);
@@ -244,17 +244,12 @@ void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, 
     double c1 = max(0, dot(&N, &neg_L));
     //std::cout<<"dot1: " << c1 << std::endl;
     double c2 = pow(max(0, dot(R, &V)), obj->shinyness);
-    double c3 = obj->alb.rg;
+
     //std::cout<<"dot2: " << c2 << std::endl;
     // multiply ambient and difuse terms by its color
     double cal_R = (obj->alb.ra * light->col.R + obj->alb.rd * c1 * light->col.R) * CR + obj->alb.rs * c2 * light->col.R;
     double cal_G = (obj->alb.ra * light->col.G + obj->alb.rd * c1 * light->col.G) * CG + obj->alb.rs * c2 * light->col.G;
     double cal_B = (obj->alb.ra * light->col.B + obj->alb.rd * c1 * light->col.B) * CB + obj->alb.rs * c2 * light->col.B;
-    if (depth != 1) {
-      cal_R *= c3;
-      cal_G *= c3;
-      cal_B *= c3;
-    }
     col->R += cal_R;
     col->G += cal_G;
     col->B += cal_B;
@@ -316,12 +311,27 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  }
      // reflection ray
     struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
-    rayTrace(reflectedRay, depth + 1, col, obj);
+    struct colourRGB reflectedCol;
+    reflectedCol.R = reflectedCol.G = reflectedCol.B = 0;
+    rayTrace(reflectedRay, depth + 1, &reflectedCol, obj);
     free(reflectedRay);
+    reflectedCol.R *= obj->alb.rg;
+    reflectedCol.G *= obj->alb.rg;
+    reflectedCol.B *= obj->alb.rg;
 
-    col->R+= tmp_col.R;
-    col->G+= tmp_col.G;
-    col->B+= tmp_col.B;
+    // refraction ray
+   struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
+   struct colourRGB refractedCol;
+   refractedCol.R = refractedCol.G = refractedCol.B = 0;
+   if (obj->alpha < 1) rayTrace(refractedRay, depth + 1, &refractedCol, obj);
+   free(refractedRay);
+   //refractedCol.R *= obj->r_index;
+   //refractedCol.G *= obj->r_index;
+   //refractedCol.B *= obj->r_index;
+
+    col->R += (tmp_col.R + reflectedCol.R + refractedCol.R);
+    col->G += (tmp_col.G + reflectedCol.G + refractedCol.G);
+    col->B += (tmp_col.B + reflectedCol.B + refractedCol.B);
  return;
 
 }
@@ -666,9 +676,6 @@ int main(int argc, char *argv[])
     *(rgbIm + 3 * (j * sx  + i) + 1) = col_thread.G * 255 > 255 ? 255 : col_thread.G * 255;
     *(rgbIm + 3 * (j * sx  + i) + 2) = col_thread.B * 255 > 255 ? 255 : col_thread.B * 255;
     free(ray_thread);
-    //std::cout << col.R << " " << col.G << " " << col.B << std::endl;
-    //fprintf(stderr, "RGB is: %0.2f, %0.2f, %0.2f\n", col.R, col.G, col.B);
-    //memcpy((unsigned char *)im->rgbdata+(j*sx+i)*3, &col, sizeof(struct colourRGB));
 
   } // end for i
  } // end for j

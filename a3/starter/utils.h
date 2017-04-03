@@ -201,30 +201,30 @@ inline struct ray3D *getReflectionRay(struct ray3D *ray, struct point3D* p, stru
     return reflectedRay;
 }
 
-inline struct ray3D *getRefractionRay(struct ray3D *ray, struct object3D* obj1, struct object3D* obj2, struct point3D* p, struct point3D* n)
+inline struct ray3D *getRefractionRay(struct ray3D *ray, struct object3D* obj, struct point3D* p, struct point3D* n)
 {
     // ray from obj1 to obj2
 
     struct point3D t;
     struct point3D N;
     struct point3D D;
-    N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = n->pw;
+    N.px = n->px, N.py = n->py, N.pz = n->pz, N.pw = 0;
     normalize(&N);
-    D.px = ray->d.px, D.py = ray->d.py, D.pz = ray->d.pz, D.pw = ray->d.pw;
+    D.px = ray->d.px, D.py = ray->d.py, D.pz = ray->d.pz, D.pw = 0;
     normalize(&D);
-    double n1 = obj1->r_index, n2 = obj2->r_index;
+    double n1 = 1.0, n2 = obj->r_index;
     double D_dot_N = dot(&D, &N);
-    // store first part result in NN
+    // store first part result in D
     struct point3D NN = N;
     scaleVector(D_dot_N, &NN);
-    subVectors(&D, &NN);
-    scaleVector(n1 / n2, &NN);
-    // store t in N
+    subVectors(&NN, &D);
+    scaleVector(n1 / n2, &D);
+    // store t in D
     double scale = sqrt(1.0 - n1 * n1 * (1 - D_dot_N * D_dot_N) / (n2 * n2));
     scaleVector(scale, &N);
-    subVectors(&NN, &N);
-
-    struct ray3D *refractedRay = newRay(p, &N);
+    subVectors(&N, &D);
+    D.pw = 0;
+    struct ray3D *refractedRay = newRay(p, &D);
     return refractedRay;
 }
 
