@@ -8,9 +8,9 @@
 struct Sphere : public Object {
   Vector3 center; // Center of the sphere
   float r, r2; // Radius, Radius^2
-
-  Sphere(const Vector3& center, float radius)
-    : center(center), r(radius), r2(radius*radius) { }
+  int index;
+  Sphere(const Vector3& center, float radius, int index_=0)
+    : center(center), r(radius), r2(radius*radius), index(index_){ }
 
   bool getIntersection(const Ray& ray, IntersectionInfo* I) const {
     Vector3 s = center - ray.o;
@@ -39,6 +39,9 @@ struct Sphere : public Object {
 
   Vector3 getCentroid() const {
     return center;
+  }
+  int getIndex() const {
+    return index;
   }
 
 };

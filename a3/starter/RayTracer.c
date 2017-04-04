@@ -19,12 +19,18 @@
 */
 
 #include "utils.h"
-
+#include "Fast-BVH/BVH.h"
+#include "Fast-BVH/Triangle.h"
+#include "Fast-BVH/Sphere.h"
+using std::vector;
 // A couple of global structures and data: An object list, a light list, and the
 // maximum recursion depth
 struct object3D *object_list;
 struct pointLS *light_list;
 struct image *env_list[5];
+
+std::unordered_map<int, object3D*> index_to_obj;
+BVH *bvh;
 int MAX_DEPTH;
 
 
@@ -67,7 +73,7 @@ void buildScene(void)
 
  // Let's add a plane
  // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
- o=newPlane(.05,.45,.75,.75,.55,.8,.75,0.7,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
+ /*o=newPlane(.05,.45,.75,.75,.55,.8,.75,0.7,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
 						// should see some reflections if all is done properly.
 						// Colour is close to cyan, and currently the plane is
 						// completely opaque (alpha=1). The refraction index is
@@ -80,6 +86,8 @@ void buildScene(void)
 						// and store the inverse
 						// transform for this object!
  insertObject(o,&object_list);			// Insert into object list
+*/
+ vector<Object*> objects;
 
  // Let's add a couple spheres
  o=newSphere(.05,.95,.55,.55,1,.25,.25,0.7,0.6,6);
@@ -88,6 +96,9 @@ void buildScene(void)
  Translate(o,-1.45,1.1,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
+ Vector3 pos(0, 2, 0);
+ objects.push_back(new Sphere(pos, .5f, 0));
+ index_to_obj[0] = o;
 
  o=newSphere(.05,.95,.55,.55,.75,.95,.55,1,1,6);
  Scale(o,.5,2.0,1.0);
@@ -95,7 +106,9 @@ void buildScene(void)
  Translate(o,1.75,1.25,5.0);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
-
+ pos = Vector3(0, -2, 0);
+ objects.push_back(new Sphere(pos, .5f, 1));
+ index_to_obj[1] = o;
  // Insert a single point light source.
  p.px=0;
  p.py=15.5;
@@ -103,15 +116,7 @@ void buildScene(void)
  p.pw=1;
  l=newPLS(&p,.95,.95,.95);
  insertPLS(l,&light_list);
-
- /*p.px=15.5;
- p.py=15.5;
- p.pz=-5.5;
- p.pw=1;
- l=newPLS(&p,.95,.95,.95);
- insertPLS(l,&light_list);
-*/
-
+ bvh = new BVH(&objects);
  // End of simple scene for Assignment 3
  // Keep in mind that you can define new types of objects such as cylinders and parametric surfaces,
  // or, you can create code to handle arbitrary triangles and then define objects as surface meshes.
@@ -190,7 +195,7 @@ void buildScene(void)
         normalize(&changed_direction);
         ray3D *test_ray = newRay(p, &changed_direction);
       /* test if the altered ray can reach this point */
-        isBlock(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+        findFirstHit_BVH(test_ray, false, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
         free(test_ray);
 
         if (lambda > 0) {
@@ -371,6 +376,26 @@ void isBlock(struct ray3D *ray, double *lambda, struct object3D *Os, struct obje
   }
 
 }
+void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b)
+{
+  //wrap BVH method
+  Vector3 ray_o = {ray->p0.px, ray->p0.py, ray->p0.pz};
+  Vector3 ray_d = {ray->d.px, ray->d.py, ray->d.pz};
+  Ray rayBVH(ray_o, normalize(ray_d));
+  IntersectionInfo I;
+  bool hit = bvh->getIntersection(rayBVH, &I, occlusion);
+  if (!hit) {
+    *lambda = -1;
+    *obj = NULL;
+  } else {
+    *lambda = I.t;
+    Vector3 normal = I.object->getNormal(I);
+    n->px = normal.x, n->py = normal.y, n->pz = normal.z, n->pw = 0;
+    p->px = I.hit.x, p->py = I.hit.y, p->pz = I.hit.z, p->pw = 1;
+    *obj = index_to_obj[I.object->getIndex()];
+    // TODO add a, b
+  }
+}
 void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b)
 {
  // Find the closest intersection between the ray and any objects in the scene.
@@ -449,7 +474,7 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  ///////////////////////////////////////////////////////
  /* obj is null because it is the first recursion so not from any object */
  /* By the end of this function call, obj will point to the object this ray firstly intersects */
- findFirstHit(ray, &lambda, Os, &obj, &p, &n, &a, &b);
+ findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
     if(lambda > 0 )
     {
       rtShade(obj, &p, &n, ray, depth, a, b, col);

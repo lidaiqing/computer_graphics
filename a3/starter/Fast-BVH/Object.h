@@ -17,7 +17,8 @@ struct Object {
 
   //! Return a bounding box for this object
   virtual BBox getBBox() const = 0;
-
+  // Return index
+  virtual int getIndex() const = 0;
   //! Return the centroid for this object. (Used in BVH Sorting)
   virtual Vector3 getCentroid() const = 0;
 };

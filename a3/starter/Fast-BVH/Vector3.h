@@ -37,10 +37,10 @@ struct Vector3 {
   Vector3 operator^(const Vector3& b) const {
     return _mm_sub_ps(
         _mm_mul_ps(
-          _mm_shuffle_ps(m128, m128, _MM_SHUFFLE(3, 0, 2, 1)), 
+          _mm_shuffle_ps(m128, m128, _MM_SHUFFLE(3, 0, 2, 1)),
           _mm_shuffle_ps(b.m128, b.m128, _MM_SHUFFLE(3, 1, 0, 2))),
         _mm_mul_ps(
-          _mm_shuffle_ps(m128, m128, _MM_SHUFFLE(3, 1, 0, 2)), 
+          _mm_shuffle_ps(m128, m128, _MM_SHUFFLE(3, 1, 0, 2)),
           _mm_shuffle_ps(b.m128, b.m128, _MM_SHUFFLE(3, 0, 2, 1)))
         );
   }
@@ -55,12 +55,12 @@ struct Vector3 {
 inline Vector3 operator*(float a, const Vector3&b)  { return _mm_mul_ps(_mm_set1_ps(a), b.m128); }
 
 // Component-wise min
-inline Vector3 min(const Vector3& a, const Vector3& b) {
+inline Vector3 Min(const Vector3& a, const Vector3& b) {
   return _mm_min_ps(a.m128, b.m128);
 }
 
 // Component-wise max
-inline Vector3 max(const Vector3& a, const Vector3& b) {
+inline Vector3 Max(const Vector3& a, const Vector3& b) {
   return _mm_max_ps(a.m128, b.m128);
 }
 

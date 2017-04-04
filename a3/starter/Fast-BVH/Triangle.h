@@ -3,29 +3,29 @@
 
 #include <cmath>
 #include "Object.h"
-
+#include <algorithm>
 //! For the purposes of demonstrating the BVH, a simple sphere
 struct Triangle : public Object {
   Vector3 center; // Center of the triangle
   Vector3 v1, v2, v3; // 3 vertices
   Vector3 vmin, vmax;
-
-  Triangle(const Vector3& v1_, const Vector3& v2_, const Vector3& v3_)
-    : v1(v1_), v2(v2_), v3(v3_) {
+  int index;
+  Triangle(const Vector3& v1_, const Vector3& v2_, const Vector3& v3_, int index_)
+    : v1(v1_), v2(v2_), v3(v3_), index(index_) {
       float x = (v1.x + v2.x + v3.x) / 3.0;
       float y = (v1.y + v2.y + v3.y) / 3.0;
       float z = (v1.z + v2.z + v3.z) / 3.0;
       center = Vector3(x, y, z);
 
-      float min_x = min(v1.x, min(v2.x, v3.x));
-      float min_y = min(v1.y, min(v2.y, v3.y));
-      float min_z = min(v1.z, min(v2.z, v3.z));
-      float max_x = max(v1.x, max(v2.x, v3.x));
-      float max_y = max(v1.y, max(v2.y, v3.y));
-      float max_z = max(v1.z, max(v2.z, v3.z));
-
-      vmin = Vector3(min_x, min_y, min_z);
-      vmax = Vector3(max_x, max_y, max_z);
+      /*float min_x = std::min(v1.x, std::min(v2.x, v3.x));
+      float min_y = std::min(v1.y, std::min(v2.y, v3.y));
+      float min_z = std::min(v1.z, std::min(v2.z, v3.z));
+      float max_x = std::max(v1.x, std::max(v2.x, v3.x));
+      float max_y = std::max(v1.y, std::max(v2.y, v3.y));
+      float max_z = std::max(v1.z, std::max(v2.z, v3.z));
+      */
+      vmin = Min(v1, Min(v2, v3));
+      vmax = Max(v1, Max(v2, v3));
      }
 
   bool getIntersection(const Ray& ray, IntersectionInfo* I) const {
