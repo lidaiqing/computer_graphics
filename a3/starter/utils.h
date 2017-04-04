@@ -246,7 +246,8 @@ void sphereIntersect(struct object3D *sphere, struct ray3D *r, double *lambda, s
 // You will need to add code for these if you implement texture mapping.
 void loadTexture(struct object3D *o, const char *filename);
 void texMap(struct image *img, double a, double b, double *R, double *G, double *B);
-
+void convert_xyz_to_cube_uv(float x, float y, float z, int *index, float *u, float *v);
+void convert_cube_uv_to_xyz(int index, float u, float v, float *x, float *y, float *z);
 // Functions to insert objects and lights into their respective lists
 void insertObject(struct object3D *o, struct object3D **list);
 void insertPLS(struct pointLS *l, struct pointLS **list);

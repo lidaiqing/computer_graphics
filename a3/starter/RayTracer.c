@@ -24,7 +24,9 @@
 // maximum recursion depth
 struct object3D *object_list;
 struct pointLS *light_list;
+struct image *env_list[5];
 int MAX_DEPTH;
+
 
 void buildScene(void)
 {
