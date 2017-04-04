@@ -297,8 +297,8 @@ struct ray3D *transformed_ray = newRay(&ray->p0, &ray->d);
 rayTransform(ray,transformed_ray,sphere);
 /* Coefficient to solve the quadratic equation */
 double coe_a,coe_b,coe_c;
-struct point3D *e_minus_c=newPoint(transformed_ray->p0.px,transformed_ray->p0.py,transformed_ray->p0.pz);
-struct point3D *intersection=newPoint(0,0,0);
+struct point3D *e_minus_c = newPoint(transformed_ray->p0.px,transformed_ray->p0.py,transformed_ray->p0.pz);
+struct point3D *intersection = newPoint(0,0,0);
 /* d dot d */
 coe_a = dot(&(transformed_ray->d),&(transformed_ray->d));
 /* A point structure to store he value of light_source minus the origin */
@@ -313,20 +313,20 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
     {
      /* no intersection found*/
      *lambda=-1;
+     free(transformed_ray);
      free(e_minus_c);
      free(intersection);
-     free(transformed_ray);
      return;
     }
 
-    *lambda = (-coe_b-(double)sqrt(under_root))/(2*coe_a);        
+    *lambda=min((-coe_b-(double)sqrt(under_root))/(2*coe_a),(-coe_b+(double)sqrt(under_root))/(2*coe_a));
      if(*lambda<0)
      {
-     *lambda=-1;
-     free(e_minus_c);
-     free(intersection);
-     free(transformed_ray);
-     return;
+       free(transformed_ray);
+       free(e_minus_c);
+       free(intersection);
+       *lambda  = -1;
+       return;
      }
 
  /* find the point this ray intersect on the sphere*/
@@ -357,8 +357,7 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
  n->pz = world_normal->pz;
  n->pw = 0;
 
- //std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << " " << n->pw << std::endl;
- //std::cout<<"point " << p->px << " " << p->py << " " << p->pz << " " << p->pw << std::endl;
+
 
  if (sphere->texImg != NULL && sphere->textureMap != NULL) {
  struct point3D z;
@@ -393,13 +392,90 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
 }
 
 
+
+ free(transformed_ray);
+ free(intersection);
  free(e_minus_c);
  free(normal);
  free(world_normal);
- free(intersection);
- free(transformed_ray);
+}
+void convert_xyz_to_cube_uv(float x, float y, float z, int *index, float *u, float *v)
+{
+/*
+A cube texture indexes six texture maps from 0 to 5 in
+order Positive X, Negative X, Positive Y, Negative Y, Positive Z, Negative Z
+*/
+  float absX = fabs(x);
+  float absY = fabs(y);
+  float absZ = fabs(z);
+
+  int isXPositive = x > 0 ? 1 : 0;
+  int isYPositive = y > 0 ? 1 : 0;
+  int isZPositive = z > 0 ? 1 : 0;
+
+  float maxAxis, uc, vc;
+
+  // POSITIVE X
+  if (isXPositive && absX >= absY && absX >= absZ) {
+    // u (0 to 1) goes from +z to -z
+    // v (0 to 1) goes from -y to +y
+    maxAxis = absX;
+    uc = -z;
+    vc = y;
+    *index = 0;
+  }
+  // NEGATIVE X
+  if (!isXPositive && absX >= absY && absX >= absZ) {
+    // u (0 to 1) goes from -z to +z
+    // v (0 to 1) goes from -y to +y
+    maxAxis = absX;
+    uc = z;
+    vc = y;
+    *index = 1;
+  }
+  // POSITIVE Y
+  if (isYPositive && absY >= absX && absY >= absZ) {
+    // u (0 to 1) goes from -x to +x
+    // v (0 to 1) goes from +z to -z
+    maxAxis = absY;
+    uc = x;
+    vc = -z;
+    *index = 2;
+  }
+  // NEGATIVE Y
+  if (!isYPositive && absY >= absX && absY >= absZ) {
+    // u (0 to 1) goes from -x to +x
+    // v (0 to 1) goes from -z to +z
+    maxAxis = absY;
+    uc = x;
+    vc = z;
+    *index = 3;
+  }
+  // POSITIVE Z
+  if (isZPositive && absZ >= absX && absZ >= absY) {
+    // u (0 to 1) goes from -x to +x
+    // v (0 to 1) goes from -y to +y
+    maxAxis = absZ;
+    uc = x;
+    vc = y;
+    *index = 4;
+  }
+  // NEGATIVE Z
+  if (!isZPositive && absZ >= absX && absZ >= absY) {
+    // u (0 to 1) goes from +x to -x
+    // v (0 to 1) goes from -y to +y
+    maxAxis = absZ;
+    uc = -x;
+    vc = y;
+    *index = 5;
+  }
+
+  // Convert range from -1 to 1 to 0 to 1
+  *u = 0.5f * (uc / maxAxis + 1.0f);
+  *v = 0.5f * (vc / maxAxis + 1.0f);
 }
 
+void convert_cube_uv_to_xyz(int index, float u, float v, float *x, float *y, float *z);
 void loadTexture(struct object3D *o, const char *filename)
 {
  // Load a texture image from file and assign it to the
