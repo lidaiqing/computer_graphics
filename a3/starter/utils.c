@@ -219,6 +219,8 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  // TO DO: Complete this function.
  /////////////////////////////////
  // transform ray to model space
+    double model_intersection_x;
+    double model_intersection_y;
     struct ray3D* ray_transformed = newRay(&ray->p0, &ray->d);
     rayTransform(ray, ray_transformed, plane);
  // check if ray is parallel to unit plane
@@ -233,15 +235,18 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
       free(ray_transformed);
       return;
     }
+
     rayPosition(ray_transformed, t, p);
+    model_intersection_x=p->px;
+    model_intersection_y=p->py;
     // check if it is behind the camera
-    if (p->px < -1 || p->px > 1 || p->py < -1 || p->px > 1) {
+    if (p->px < -1 || p->px > 1 || p->py < -1 || p->py > 1) {
       *lambda = -1;
       free(ray_transformed);
       return;
     }
     *lambda = t;
-    struct point3D* n_orig = newPoint(0,0,-1);
+    struct point3D* n_orig = newPoint(0,0,1);
     n_orig->pw = 0;
     // transform back to world space
     matVecMult(plane->T, p);
@@ -261,7 +266,19 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  // (1,1,0), (-1,1,0), (-1,-1,0), (1,-1,0)
  // With normal vector (0,0,1) (i.e. parallel to the XY plane)
  // choose point a as (1,1,0), b as (-1,1,0), c as (-1,-1,0)
-    if (plane->texImg != NULL && plane->textureMap != NULL) {}
+  // The plane is defined by the following vertices (CCW)
+ // (1,1,0), (-1,1,0), (-1,-1,0), (1,-1,0)
+    if (plane->texImg != NULL && plane->textureMap != NULL) {
+    double transformed_x=model_intersection_x+1.0;
+    double transformed_y=model_intersection_y+1.0;
+    /* Find normalized coordination on the plane */
+    *a=transformed_x/2.0;
+    *b=transformed_y/2.0;
+    if(*b>1)
+    {
+    std::cout<<" check: "<<model_intersection_x<<std::endl;
+    }
+    }
 
 
 
@@ -343,6 +360,39 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
  //std::cout<<"normal " << n->px << " " << n->py << " " << n->pz << " " << n->pw << std::endl;
  //std::cout<<"point " << p->px << " " << p->py << " " << p->pz << " " << p->pw << std::endl;
 
+ if (sphere->texImg != NULL && sphere->textureMap != NULL) {
+ struct point3D z;
+ z.px=0;
+ z.py=0;
+ z.pz=1;
+ z.pw=0;
+ struct point3D x;
+ x.px=1;
+ x.py=0;
+ x.pz=0;
+ x.pw=0;
+
+ double cos_phi=dot(normal,&z);
+ double cos_theta=dot(normal,&x);
+ double phi;
+ double theta;
+ /* Find normalized coordination on the plane */
+ /* calculate the correct phi out of a pi */
+ phi=acos(cos_phi);
+
+ if(normal->py<0)
+  {
+   theta=(double)2*3.1415926-acos(cos_theta);
+  }
+  else
+  {
+   theta=acos(cos_theta);
+  }
+    *a=phi/3.141592;
+    *b=theta/((double)2*3.141592);
+}
+
+
  free(e_minus_c);
  free(normal);
  free(world_normal);
@@ -387,10 +437,94 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
  // coordinates. Your code should use bi-linear
  // interpolation to obtain the texture colour.
  //////////////////////////////////////////////////
+ //*****Reminder:*****//
+ //////////////////////////////////////////////////
+ //     1                              2
+ //   floor_x,ceiling_y           ceiling_x,ceiling_y
+ //
+ // ^                    + <---"some point"
+ // |
+ // |   3                              4
+ // | floor_x,floor_y             ceiling_x,floor_y
+ //  _________>
+ /////////////////////////////////////////////////
 
- *(R)=0;	// Returns black - delete this and
- *(G)=0;	// replace with your code to compute
- *(B)=0;	// texture colour at (a,b)
+  double x_location = (double)img->sx*a;
+  double y_location = (double)img->sy*b;
+  double *rgbIm=(double *)img->rgbdata;
+
+  if(ceil(x_location)>=img->sx)
+  {
+  x_location-=1;
+  }
+
+  if(ceil(y_location)>=img->sy)
+  {
+  y_location-=1;
+  }
+
+
+  int floor_x = floor(x_location);
+  int ceiling_x = ceil(x_location);
+
+  int floor_y = floor(y_location);
+  int ceiling_y = ceil(y_location);
+
+  double R1,R2,R3,R4;
+  double G1,G2,G3,G4;
+  double B1,B2,B3,B4;
+
+
+
+  /* Point 1:*/
+
+  //std::cout<<" x: "<<img->sx<<" y: "<<img->sy<<std::endl;
+  //std::cout<<" xp: "<<x_location<<" yp: "<<y_location<<std::endl;
+
+
+
+  R1=*(rgbIm + 3 * (ceiling_y * img->sx + floor_x));
+  G1=*(rgbIm + 3 * (ceiling_y * img->sx + floor_x) + 1);
+  B1=*(rgbIm + 3 * (ceiling_y * img->sx + floor_x) + 2);
+
+
+  /* Point 2:*/
+  R2=*(rgbIm + 3*(ceiling_y*img->sx + ceiling_x));
+  G2=*(rgbIm + 3*(ceiling_y*img->sx + ceiling_x) + 1);
+  B2=*(rgbIm + 3*(ceiling_y*img->sx + ceiling_x) + 2);
+
+
+  /* Point 3:*/
+  R3=*(rgbIm + 3*(floor_y*img->sx + floor_x));
+  G3=*(rgbIm + 3*(floor_y*img->sx + floor_x) + 1);
+  B3=*(rgbIm + 3*(floor_y*img->sx + floor_x) + 2);
+
+
+  /* Point 4:*/
+  R4=*(rgbIm + 3*(floor_y*img->sx + ceiling_x));
+  G4=*(rgbIm + 3*(floor_y*img->sx + ceiling_x) + 1);
+  B4=*(rgbIm + 3*(floor_y*img->sx + ceiling_x) + 2);
+
+
+  double x_dist = ceiling_x - x_location;
+  double y_dist = y_location - floor_y;
+  //double dist = x_dist * y_
+  *R = x_dist * y_dist *R1+(x_location-(double)floor_x)*(y_location-(double)floor_y)*R2
+    +((double)ceiling_x-x_location)*((double)ceiling_y-y_location)*R3+(x_location-(double)floor_x)*((double)ceiling_y-y_location)*R4;
+
+  *G=((double)ceiling_x-x_location)*(y_location-(double)floor_y)*G1+(x_location-(double)floor_x)*(y_location-(double)floor_y)*G2
+  +((double)ceiling_x-x_location)*((double)ceiling_y-y_location)*G3+(x_location-(double)floor_x)*((double)ceiling_y-y_location)*G4;
+
+  *B=((double)ceiling_x-x_location)*(y_location-(double)floor_y)*B1+(x_location-(double)floor_x)*(y_location-(double)floor_y)*B2
+  +((double)ceiling_x-x_location)*((double)ceiling_y-y_location)*B3+(x_location-(double)floor_x)*((double)ceiling_y-y_location)*B4;
+
+  //std::cout<<" 1: "<<((double)ceiling_x-x_location)*(y_location-(double)floor_y)*R1<<" 2: "<<(x_location-(double)floor_x)*(y_location-(double)floor_y)*R2<<" 3: "
+  //<<((double)ceiling_x-x_location)*((double)ceiling_y-y_location)*R3<<" R2: "<<R2<<std::endl;
+
+
+
+  //im->rgbdata=(void *)calloc(size_x*size_y*3,sizeof(unsigned char));
+
  return;
 }
 

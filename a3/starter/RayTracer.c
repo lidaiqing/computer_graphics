@@ -63,21 +63,116 @@ void buildScene(void)
  // Insert a couple of objects. A plane and two spheres
  // with some transformations.
 
- // Let's add a plane
- // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
- o=newPlane(.05,.75,.75,.05,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
+ /* Front plane */
+  //Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
+ o=newPlane(.05,.75,.75,.05,.55,.8,.75,1,1,0.7);	// Note the plane is highly-reflective (rs=rg=.75) so we
 						// should see some reflections if all is done properly.
 						// Colour is close to cyan, and currently the plane is
 						// completely opaque (alpha=1). The refraction index is
 						// meaningless since alpha=1
- Scale(o,6,6,1);				// Do a few transforms...
- RotateZ(o,PI/1.20);
- RotateX(o,PI/2.25);
- Translate(o,0,-3,10);
+ Scale(o,6,6,1.1);				// Do a few transforms...
+ RotateZ(o,PI);
+ //RotateX(o,PI/2.25);
+ Translate(o,0,0,15);
  invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
 						// and store the inverse
 						// transform for this object!
  insertObject(o,&object_list);			// Insert into object list
+  loadTexture(o,"negz.PPM");
+
+//  /* Back plane */
+// // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
+// o=newPlane(.05,.75,.75,.05,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
+// RotateZ(o,PI);
+// 						// should see some reflections if all is done properly.
+//						// Colour is close to cyan, and currently the plane is
+//						// completely opaque (alpha=1). The refraction index is
+//						// meaningless since alpha=1
+// Scale(o,6,6,1);				// Do a few transforms...
+//
+// invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
+//						// and store the inverse
+//						// transform for this object!
+// insertObject(o,&object_list);			// Insert into object list
+//  loadTexture(o,"deer.PPM");
+
+ /* Right plane */
+  o=newPlane(.05,.75,.75,.05,.55,.8,.75,1,1,1);	// Note the plane is highly-reflective (rs=rg=.75) so we
+						// should see some reflections if all is done properly.
+						// Colour is close to cyan, and currently the plane is
+						// completely opaque (alpha=1). The refraction index is
+						// meaningless since alpha=1
+ Scale(o,6,6,1.1);
+ RotateZ(o,PI);
+ Translate(o,6,0,0);
+ RotateY(o,PI/2.0);
+ Translate(o,6,0,0);
+ //RotateZ(o,PI);
+ //RotateX(o,PI/2.25);
+ Translate(o,0,0,15);
+ invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
+						// and store the inverse
+						// transform for this object!
+ insertObject(o,&object_list);			// Insert into object list
+ loadTexture(o,"posx.PPM");
+
+  /* Left plane */
+  o=newPlane(.05,.75,.75,.05,.55,.8,.75,1,1,1);	// Note the plane is highly-reflective (rs=rg=.75) so we
+						// should see some reflections if all is done properly.
+						// Colour is close to cyan, and currently the plane is
+						// completely opaque (alpha=1). The refraction index is
+						// meaningless since alpha=1
+ Scale(o,6,6,1.1);
+ RotateZ(o,PI);
+ Translate(o,-6,0,0);
+ RotateY(o,-PI/2.0);
+ Translate(o,-6,0,0);
+
+ //RotateX(o,PI/2.25);
+ Translate(o,0,0,15);
+ invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
+						// and store the inverse
+						// transform for this object!
+ insertObject(o,&object_list);			// Insert into object list
+ loadTexture(o,"negx.PPM");
+
+  /* Ground plane */
+  o=newPlane(.05,.35,.35,.05,.55,.8,.75,1,1,1);	// Note the plane is highly-reflective (rs=rg=.75) so we
+						// should see some reflections if all is done properly.
+						// Colour is close to cyan, and currently the plane is
+						// completely opaque (alpha=1). The refraction index is
+						// meaningless since alpha=1
+ Scale(o,6,6,1.1);
+ RotateZ(o,PI);
+ Translate(o,0,-6,0);
+ RotateX(o,PI/2.0);
+ Translate(o,0,-6,0);
+ //RotateX(o,PI/2.25);
+ Translate(o,0,0,15);
+ invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
+						// and store the inverse
+						// transform for this object!
+ insertObject(o,&object_list);			// Insert into object list
+ loadTexture(o,"negy.PPM");
+
+  /* Up plane */
+  o=newPlane(.05,.75,.75,.05,.55,.8,.75,1,1,1);	// Note the plane is highly-reflective (rs=rg=.75) so we
+						// should see some reflections if all is done properly.
+						// Colour is close to cyan, and currently the plane is
+						// completely opaque (alpha=1). The refraction index is
+						// meaningless since alpha=1
+ Scale(o,6,6,1.1);
+ //RotateZ(o,PI);
+ Translate(o,0,6,0);
+ RotateX(o,-PI/2.0);
+ Translate(o,0,6,0);
+ //RotateX(o,PI/2.25);
+ Translate(o,0,0,15);
+ invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
+						// and store the inverse
+						// transform for this object!
+ insertObject(o,&object_list);			// Insert into object list
+ loadTexture(o,"posy.PPM");
 
  // Let's add a couple spheres
  o=newSphere(.05,.95,.35,.75,1,.25,.25,1,1,6);
@@ -95,12 +190,34 @@ void buildScene(void)
  insertObject(o,&object_list);
 
  // Insert a single point light source.
- p.px=0;
- p.py=15.5;
- p.pz=-5.5;
+ p.px=3;
+ p.py=3;
+ p.pz=8;
  p.pw=1;
  l=newPLS(&p,.95,.95,.95);
  insertPLS(l,&light_list);
+
+ p.px=-3;
+ p.py=3;
+ p.pz=-8;
+ p.pw=1;
+ l=newPLS(&p,.95,.95,.95);
+ insertPLS(l,&light_list);
+
+ p.px=3;
+ p.py=-3;
+ p.pz=8;
+ p.pw=1;
+ l=newPLS(&p,.95,.95,.95);
+ insertPLS(l,&light_list);
+
+ p.px=-3;
+ p.py=-3;
+ p.pz=-8;
+ p.pw=1;
+ l=newPLS(&p,.95,.95,.95);
+ insertPLS(l,&light_list);
+
 
  // End of simple scene for Assignment 3
  // Keep in mind that you can define new types of objects such as cylinders and parametric surfaces,
@@ -294,8 +411,9 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  {
   // Get object colour from the texture given the texture coordinates (a,b), and the texturing function
   // for the object. Note that we will use textures also for Photon Mapping.
-  //printf("here\n");
   obj->textureMap(obj->texImg,a,b,&R,&G,&B);
+  //derict return --Only need texture//
+
  }
 
  //////////////////////////////////////////////////////////////
@@ -314,7 +432,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  struct pointLS* lightPtr = light_list;
  while (lightPtr) {
     //free(refractedRay);
-    areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 6);
+    areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 2);
     lightPtr = lightPtr->next;
     //counter++;
  }
@@ -552,7 +670,7 @@ int main(int argc, char *argv[])
  // Camera center is at (0,0,-1)
  e.px=0;
  e.py=0;
- e.pz=-1;
+ e.pz=1;
  e.pw=1;
 
  // To define the gaze vector, we choose a point 'pc' in the scene that
@@ -631,8 +749,8 @@ int main(int argc, char *argv[])
     //         raytracing!
     ///////////////////////////////////////////////////////////////////
     col.R = col.G = col.B = 0;
-    if (antialiasing) antialiaing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f),5,du, &col );
-    //rayTrace(ray,1,&col,NULL);
+    if (antialiasing) {antialiaing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f),4,du, &col );}
+    else {rayTrace(ray,1,&col,NULL);}
     *(rgbIm + 3 * (j * sx  + i)) = col.R * 255 > 255 ? 255 : col.R * 255;
     *(rgbIm + 3 * (j * sx  + i) + 1) = col.G * 255 > 255 ? 255 : col.G * 255;
     *(rgbIm + 3 * (j * sx  + i) + 2) = col.B * 255 > 255 ? 255 : col.B * 255;
