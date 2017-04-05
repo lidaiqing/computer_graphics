@@ -147,27 +147,30 @@ p.pw=1;
 l=newPLS(&p,.65,.65,.65);
 insertPLS(l,&light_list);
 
- // vector<uint32_t> faces;
- // vector<float> verts;
- // read_ply_file(MESH_PATH, verts, faces);
- // Let's add a couple meshes
- // int index = 0;
- // Vector3 scale_factor(0.03,0.03,0.03);
- // Vector3 translate(0,0,-4);
- // for (int i = 0; i < faces.size(); i += 3)
- // {
- //    struct object3D *o = newTriangle(.05,.95,.55,.05,1,.25,.25,1,0.6,6);
- //    insertObject(o, &object_list);
- //    Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
- //    Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
- //    Vector3 v3(verts[faces[i+2]*3], verts[faces[i+2]*3+1], verts[faces[i+2]*3+2]);
- //    v1 = scale_factor.cmul(v1) + translate;
- //    v2 = scale_factor.cmul(v2) + translate;
- //    v3 = scale_factor.cmul(v3) + translate;
- //    objects.push_back(new Triangle(v1, v2, v3, index));
- //    index_to_obj[index] = o;
- //    index++;
- // }
+  vector<uint32_t> faces;
+  vector<float> verts;
+  read_ply_file(MESH_PATH, verts, faces);
+  Let's add a couple meshes
+  int index = 3;
+  for (int i = 0; i < faces.size(); i += 3)
+  {
+     struct object3D *o = newTriangle(.05,.95,.55,.05,1,.25,.25,1,0.6,6);
+     Scale(o,6,1,6);
+     RotateX(o,PI/2.25);
+     Translate(o,0,-3,10);
+     invert(&o->T[0][0],&o->Tinv[0][0]);
+     insertObject(o, &object_list);
+     Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
+     Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
+     Vector3 v3(verts[faces[i+2]*3], verts[faces[i+2]*3+1], verts[faces[i+2]*3+2]);
+
+     transformVert(v1, o);
+     transformVert(v2, o);
+     transformVert(v3, o);
+     objects.push_back(new Triangle(v1, v2, v3, index));
+     index_to_obj[index] = o;
+     index++;
+  }
 
  bvh = new BVH(&objects);
 
