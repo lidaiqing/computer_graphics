@@ -26,6 +26,7 @@ struct Sphere : public Object {
     // Assume we are not in a sphere... The first hit is the lesser valued
     I->object = this;
     I->t = sd - sqrt(disc);
+    I->hit = ray.o + I->t * ray.d;
     return true;
   }
 
