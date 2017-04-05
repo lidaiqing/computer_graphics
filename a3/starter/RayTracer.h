@@ -26,6 +26,7 @@
 #define NEG_Y_PATH "map.ppm"
 #define POS_Z_PATH "map.ppm"
 #define NEG_Z_PATH "map.ppm"
+#define MESH_PATH "model/dragon.ply"
 /* The structure below is used to hold a single RGB image */
 struct image{
 	void *rgbdata;

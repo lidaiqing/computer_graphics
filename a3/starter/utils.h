@@ -17,6 +17,7 @@
 
 #include "RayTracer.h"
 #include "svdDynamic.h"
+#include "tinyply/source/tinyply.h"
 
 #ifndef __utils_header
 #define __utils_header
@@ -236,6 +237,7 @@ void normalTransform(struct point3D *n_orig, struct point3D *n_transformed, stru
 // You'll need to add code for these functions in utils.c
 struct object3D *newPlane(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double R_index, double shiny);
 struct object3D *newSphere(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double R_index, double shiny);
+struct object3D *newTriangle(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double R_index, double shiny);
 
 // Functions to compute intersections for objects.
 // You'll need to add code for these in utils.c
@@ -248,6 +250,7 @@ void loadTexture(struct object3D *o, const char *filename);
 void texMap(struct image *img, double a, double b, double *R, double *G, double *B);
 void convert_xyz_to_cube_uv(float x, float y, float z, int *index, float *u, float *v);
 void convert_cube_uv_to_xyz(int index, float u, float v, float *x, float *y, float *z);
+void read_ply_file(const std::string & filename, std::vector<float>& verts, std::vector<uint32_t>& faces);
 // Functions to insert objects and lights into their respective lists
 void insertObject(struct object3D *o, struct object3D **list);
 void insertPLS(struct pointLS *l, struct pointLS **list);

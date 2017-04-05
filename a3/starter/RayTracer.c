@@ -31,6 +31,7 @@ struct image *env_list[5];
 
 std::unordered_map<int, object3D*> index_to_obj;
 BVH *bvh;
+vector<Object*> objects;
 int MAX_DEPTH;
 
 
@@ -55,60 +56,27 @@ void buildScene(void)
  struct pointLS *l;
  struct point3D p;
 
- ///////////////////////////////////////
- // TO DO: For Assignment 3 you have to use
- //        the simple scene provided
- //        here, but for Assignment 4 you
- //        *MUST* define your own scene.
- //        Part of your mark will depend
- //        on how nice a scene you
- //        create. Use the simple scene
- //        provided as a sample of how to
- //        define and position objects.
- ///////////////////////////////////////
+ vector<uint32_t> faces;
+ vector<float> verts;
+ read_ply_file(MESH_PATH, verts, faces);
+ // Let's add a couple meshes
+ int index = 0;
+ double factor = 10.0;
+ for (int i = 0; i < faces.size(); i += 3)
+ {
+    o = newTriangle(.05,.95,.55,.05,1,.25,.25,1,0.6,6);
+    insertObject(o, &object_list);
+    Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
+    Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
+    Vector3 v3(verts[faces[i+2]*3], verts[faces[i+2]*3+1], verts[faces[i+2]*3+2]);
+    v1 = factor * v1;
+    v2 = factor * v2;
+    v3 = factor * v3;
+    objects.push_back(new Triangle(v1, v2, v3, index));
+    index_to_obj[index] = o;
+    index++;
+ }
 
- // Simple scene for Assignment 3:
- // Insert a couple of objects. A plane and two spheres
- // with some transformations.
-
- // Let's add a plane
- // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
- /*o=newPlane(.05,.45,.75,.75,.55,.8,.75,0.7,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
-						// should see some reflections if all is done properly.
-						// Colour is close to cyan, and currently the plane is
-						// completely opaque (alpha=1). The refraction index is
-						// meaningless since alpha=1
- Scale(o,6,6,1);				// Do a few transforms...
- RotateZ(o,PI/1.20);
- RotateX(o,PI/2.25);
- Translate(o,0,-3,10);
- invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
-						// and store the inverse
-						// transform for this object!
- insertObject(o,&object_list);			// Insert into object list
-*/
- vector<Object*> objects;
-
- // Let's add a couple spheres
- o=newSphere(.05,.95,.55,.55,1,.25,.25,0.7,0.6,6);
- Scale(o,.75,.5,1.5);
- RotateY(o,PI/2);
- Translate(o,-1.45,1.1,3.5);
- invert(&o->T[0][0],&o->Tinv[0][0]);
- insertObject(o,&object_list);
- Vector3 pos(0, 2, 0);
- objects.push_back(new Sphere(pos, .5f, 0));
- index_to_obj[0] = o;
-
- o=newSphere(.05,.95,.55,.55,.75,.95,.55,1,1,6);
- Scale(o,.5,2.0,1.0);
- RotateZ(o,PI/1.5);
- Translate(o,1.75,1.25,5.0);
- invert(&o->T[0][0],&o->Tinv[0][0]);
- insertObject(o,&object_list);
- pos = Vector3(0, -2, 0);
- objects.push_back(new Sphere(pos, .5f, 1));
- index_to_obj[1] = o;
  // Insert a single point light source.
  p.px=0;
  p.py=15.5;
@@ -117,13 +85,7 @@ void buildScene(void)
  l=newPLS(&p,.95,.95,.95);
  insertPLS(l,&light_list);
  bvh = new BVH(&objects);
- // End of simple scene for Assignment 3
- // Keep in mind that you can define new types of objects such as cylinders and parametric surfaces,
- // or, you can create code to handle arbitrary triangles and then define objects as surface meshes.
- //
- // Remember: A lot of the quality of your scene will depend on how much care you have put into defining
- //           the relflectance properties of your objects, and the number and type of light sources
- //           in the scene.
+
 }
  void areaLighting(struct object3D* obj, struct pointLS* centre_light, struct point3D *p, struct point3D *n,struct ray3D *ray, int depth, double R, double G, double B, struct colourRGB* col, int sample_num )
  {
@@ -327,18 +289,18 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     reflectedCol.B *= obj->alb.rg;
 
     // refraction ray
-   struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
+   /*struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
    struct colourRGB refractedCol;
    refractedCol.R = refractedCol.G = refractedCol.B = 0;
    if (obj->alpha < 1) rayTrace(refractedRay, depth + 1, &refractedCol, obj);
-   free(refractedRay);
+   free(refractedRay);*/
    //refractedCol.R *= obj->r_index;
    //refractedCol.G *= obj->r_index;
    //refractedCol.B *= obj->r_index;
 
-    col->R += (tmp_col.R + reflectedCol.R + refractedCol.R);
-    col->G += (tmp_col.G + reflectedCol.G + refractedCol.G);
-    col->B += (tmp_col.B + reflectedCol.B + refractedCol.B);
+    col->R += (tmp_col.R + reflectedCol.R);// + refractedCol.R);
+    col->G += (tmp_col.G + reflectedCol.G);// + refractedCol.G);
+    col->B += (tmp_col.B + reflectedCol.B);// + refractedCol.B);
  return;
 
 }
@@ -379,9 +341,10 @@ void isBlock(struct ray3D *ray, double *lambda, struct object3D *Os, struct obje
 void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b)
 {
   //wrap BVH method
-  Vector3 ray_o = {ray->p0.px, ray->p0.py, ray->p0.pz};
-  Vector3 ray_d = {ray->d.px, ray->d.py, ray->d.pz};
+  Vector3 ray_o(ray->p0.px, ray->p0.py, ray->p0.pz);
+  Vector3 ray_d(ray->d.px, ray->d.py, ray->d.pz);
   Ray rayBVH(ray_o, normalize(ray_d));
+  //std::cout<< "x: " << rayBVH.d.x << " y: " << rayBVH.d.y << " z:" << rayBVH.d.z << std::endl;
   IntersectionInfo I;
   bool hit = bvh->getIntersection(rayBVH, &I, occlusion);
   if (!hit) {
@@ -475,7 +438,7 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  /* obj is null because it is the first recursion so not from any object */
  /* By the end of this function call, obj will point to the object this ray firstly intersects */
  findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
-    if(lambda > 0 )
+    if(lambda > 0)
     {
       rtShade(obj, &p, &n, ray, depth, a, b, col);
     }
@@ -612,7 +575,7 @@ int main(int argc, char *argv[])
  // Camera center is at (0,0,-1)
  e.px=0;
  e.py=0;
- e.pz=-3;
+ e.pz=-10;
  e.pw=1;
 
  // To define the gaze vector, we choose a point 'pc' in the scene that

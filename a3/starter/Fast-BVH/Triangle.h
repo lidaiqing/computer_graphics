@@ -4,7 +4,7 @@
 #include <cmath>
 #include "Object.h"
 #include <algorithm>
-//! For the purposes of demonstrating the BVH, a simple sphere
+
 struct Triangle : public Object {
   Vector3 center; // Center of the triangle
   Vector3 v1, v2, v3; // 3 vertices
@@ -69,7 +69,9 @@ struct Triangle : public Object {
   Vector3 getCentroid() const {
     return center;
   }
-
+  int getIndex() const {
+    return index;
+  }
 };
 
 #endif
