@@ -10,6 +10,20 @@
 #include "utils.h"
 #include <stdlib.h>
 #include <math.h>
+using namespace tinyply;
+
+typedef std::chrono::time_point<std::chrono::high_resolution_clock> timepoint;
+std::chrono::high_resolution_clock c;
+
+inline std::chrono::time_point<std::chrono::high_resolution_clock> now()
+{
+	return c.now();
+}
+
+inline double difference_micros(timepoint start, timepoint end)
+{
+	return (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+}
 
 template<class T>
 const T& min(const T& a, const T& b)
@@ -127,6 +141,35 @@ inline void normalTransform(struct point3D *n_orig, struct point3D *n_transforme
 /////////////////////////////////////////////
 // Object management section
 /////////////////////////////////////////////
+struct object3D *newTriangle(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double r_index, double shiny)
+{
+
+ struct object3D *triangle=(struct object3D *)calloc(1,sizeof(struct object3D));
+
+ if (!triangle) fprintf(stderr,"Unable to allocate new plane, out of memory!\n");
+ else
+ {
+  triangle->alb.ra=ra;
+  triangle->alb.rd=rd;
+  triangle->alb.rs=rs;
+  triangle->alb.rg=rg;
+  triangle->col.R=r;
+  triangle->col.G=g;
+  triangle->col.B=b;
+  triangle->alpha=alpha;
+  triangle->r_index=r_index;
+  triangle->shinyness=shiny;
+  triangle->intersect=NULL;
+  triangle->texImg=NULL;
+  memcpy(&triangle->T[0][0],&eye4x4[0][0],16*sizeof(double));
+  memcpy(&triangle->Tinv[0][0],&eye4x4[0][0],16*sizeof(double));
+  triangle->textureMap=&texMap;
+  triangle->frontAndBack=1;
+  triangle->isLightSource=0;
+ }
+ return(triangle);
+}
+
 struct object3D *newPlane(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double r_index, double shiny)
 {
  // Intialize a new plane with the specified parameters:
@@ -219,6 +262,8 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  // TO DO: Complete this function.
  /////////////////////////////////
  // transform ray to model space
+    double model_intersection_x;
+    double model_intersection_y;
     struct ray3D* ray_transformed = newRay(&ray->p0, &ray->d);
     rayTransform(ray, ray_transformed, plane);
  // check if ray is parallel to unit plane
@@ -233,7 +278,10 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
       free(ray_transformed);
       return;
     }
+
     rayPosition(ray_transformed, t, p);
+    model_intersection_x=p->px;
+    model_intersection_y=p->py;
     // check if it is behind the camera
     if (p->px < -1 || p->px > 1 || p->py < -1 || p->py > 1) {
       *lambda = -1;
@@ -241,7 +289,7 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
       return;
     }
     *lambda = t;
-    struct point3D* n_orig = newPoint(0,0,-1);
+    struct point3D* n_orig = newPoint(0,0,1);
     n_orig->pw = 0;
     // transform back to world space
     matVecMult(plane->T, p);
@@ -261,7 +309,19 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
  // (1,1,0), (-1,1,0), (-1,-1,0), (1,-1,0)
  // With normal vector (0,0,1) (i.e. parallel to the XY plane)
  // choose point a as (1,1,0), b as (-1,1,0), c as (-1,-1,0)
-    if (plane->texImg != NULL && plane->textureMap != NULL) {}
+  // The plane is defined by the following vertices (CCW)
+ // (1,1,0), (-1,1,0), (-1,-1,0), (1,-1,0)
+    if (plane->texImg != NULL && plane->textureMap != NULL) {
+    double transformed_x=model_intersection_x+1.0;
+    double transformed_y=model_intersection_y+1.0;
+    /* Find normalized coordination on the plane */
+    *a=transformed_x/2.0;
+    *b=transformed_y/2.0;
+    if(*b>1)
+    {
+    std::cout<<" check: "<<model_intersection_x<<std::endl;
+    }
+    }
 
 
 
@@ -341,13 +401,131 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
  n->pw = 0;
 
 
+
+ if (sphere->texImg != NULL && sphere->textureMap != NULL) {
+ struct point3D z;
+ z.px=0;
+ z.py=0;
+ z.pz=1;
+ z.pw=0;
+ struct point3D x;
+ x.px=1;
+ x.py=0;
+ x.pz=0;
+ x.pw=0;
+
+ double cos_phi=dot(normal,&z);
+ double cos_theta=dot(normal,&x);
+ double phi;
+ double theta;
+ /* Find normalized coordination on the plane */
+ /* calculate the correct phi out of a pi */
+ phi=acos(cos_phi);
+
+ if(normal->py<0)
+  {
+   theta=(double)2*3.1415926-acos(cos_theta);
+  }
+  else
+  {
+   theta=acos(cos_theta);
+  }
+    *a=phi/3.141592;
+    *b=theta/((double)2*3.141592);
+}
+
+
+
  free(transformed_ray);
  free(intersection);
  free(e_minus_c);
  free(normal);
  free(world_normal);
 }
+void convert_xyz_to_cube_uv(double x, double y, double z, int *index, double *u, double *v)
+{
+/*
+A cube texture indexes six texture maps from 0 to 5 in
+order Positive X, Negative X, Positive Y, Negative Y, Positive Z, Negative Z
+*/
+    //std::cout<<" x: "<<x<<" y: "<<y<<" z "<<z<<std::endl;
 
+  double absX = fabs(x);
+  double absY = fabs(y);
+  double absZ = fabs(z);
+
+  int isXPositive = x > 0 ? 1 : 0;
+  int isYPositive = y > 0 ? 1 : 0;
+  int isZPositive = z > 0 ? 1 : 0;
+
+  float maxAxis, uc, vc;
+
+  //std::cout<<" absx: "<<absX<<" absY: "<<absY<<" absZ "<<absZ<<std::endl;
+
+  // POSITIVE X
+  if (isXPositive && absX >= absY && absX >= absZ) {
+    // u (0 to 1) goes from +z to -z
+    // v (0 to 1) goes from -y to +y
+    maxAxis = absX;
+    uc = -z;
+    vc = y;
+    *index = 0;
+  }
+  // NEGATIVE X
+  if (!isXPositive && absX >= absY && absX >= absZ) {
+    // u (0 to 1) goes from -z to +z
+    // v (0 to 1) goes from -y to +y
+    maxAxis = absX;
+    uc = z;
+    vc = y;
+    *index = 1;
+  }
+  // POSITIVE Y
+  if (isYPositive && absY >= absX && absY >= absZ) {
+    // u (0 to 1) goes from -x to +x
+    // v (0 to 1) goes from +z to -z
+    maxAxis = absY;
+    uc = x;
+    vc = -z;
+    *index = 2;
+  }
+  // NEGATIVE Y
+  if (!isYPositive && absY >= absX && absY >= absZ) {
+    // u (0 to 1) goes from -x to +x
+    // v (0 to 1) goes from -z to +z
+    maxAxis = absY;
+    uc = x;
+    vc = z;
+    *index = 3;
+  }
+  // POSITIVE Z
+  if (isZPositive && absZ >= absX && absZ >= absY) {
+    // u (0 to 1) goes from -x to +x
+    // v (0 to 1) goes from -y to +y
+    maxAxis = absZ;
+    uc = x;
+    vc = y;
+    *index = 4;
+  }
+  // NEGATIVE Z
+  if (!isZPositive && absZ >= absX && absZ >= absY) {
+    // u (0 to 1) goes from +x to -x
+    // v (0 to 1) goes from -y to +y
+    maxAxis = absZ;
+    uc = -x;
+    vc = y;
+    *index = 5;
+  }
+
+   //std::cout<<" uc: "<<uc<<" vc "<<vc<<std::endl;
+
+  // Convert range from -1 to 1 to 0 to 1
+  *u = 0.5f * (uc / maxAxis + 1.0f);
+  *v = 0.5f * (vc / maxAxis + 1.0f);
+}
+
+void convert_cube_uv_to_xyz(int index, float u, float v, float *x, float *y, float *z)
+{}
 void loadTexture(struct object3D *o, const char *filename)
 {
  // Load a texture image from file and assign it to the
@@ -385,10 +563,94 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
  // coordinates. Your code should use bi-linear
  // interpolation to obtain the texture colour.
  //////////////////////////////////////////////////
+ //*****Reminder:*****//
+ //////////////////////////////////////////////////
+ //     1                              2
+ //   floor_x,ceiling_y           ceiling_x,ceiling_y
+ //
+ // ^                    + <---"some point"
+ // |
+ // |   3                              4
+ // | floor_x,floor_y             ceiling_x,floor_y
+ //  _________>
+ /////////////////////////////////////////////////
 
- *(R)=0;	// Returns black - delete this and
- *(G)=0;	// replace with your code to compute
- *(B)=0;	// texture colour at (a,b)
+  double x_location = (double)img->sx*a;
+  double y_location = (double)img->sy*b;
+  double *rgbIm=(double *)img->rgbdata;
+
+  if(ceil(x_location)>=img->sx)
+  {
+  x_location-=1;
+  }
+
+  if(ceil(y_location)>=img->sy)
+  {
+  y_location-=1;
+  }
+
+
+  int floor_x = floor(x_location);
+  int ceiling_x = ceil(x_location);
+
+  int floor_y = floor(y_location);
+  int ceiling_y = ceil(y_location);
+
+  double R1,R2,R3,R4;
+  double G1,G2,G3,G4;
+  double B1,B2,B3,B4;
+
+
+
+  /* Point 1:*/
+
+  //std::cout<<" x: "<<img->sx<<" y: "<<img->sy<<std::endl;
+  //std::cout<<" xp: "<<x_location<<" yp: "<<y_location<<std::endl;
+
+
+
+  R1=*(rgbIm + 3 * (ceiling_y * img->sx + floor_x));
+  G1=*(rgbIm + 3 * (ceiling_y * img->sx + floor_x) + 1);
+  B1=*(rgbIm + 3 * (ceiling_y * img->sx + floor_x) + 2);
+
+
+  /* Point 2:*/
+  R2=*(rgbIm + 3*(ceiling_y*img->sx + ceiling_x));
+  G2=*(rgbIm + 3*(ceiling_y*img->sx + ceiling_x) + 1);
+  B2=*(rgbIm + 3*(ceiling_y*img->sx + ceiling_x) + 2);
+
+
+  /* Point 3:*/
+  R3=*(rgbIm + 3*(floor_y*img->sx + floor_x));
+  G3=*(rgbIm + 3*(floor_y*img->sx + floor_x) + 1);
+  B3=*(rgbIm + 3*(floor_y*img->sx + floor_x) + 2);
+
+
+  /* Point 4:*/
+  R4=*(rgbIm + 3*(floor_y*img->sx + ceiling_x));
+  G4=*(rgbIm + 3*(floor_y*img->sx + ceiling_x) + 1);
+  B4=*(rgbIm + 3*(floor_y*img->sx + ceiling_x) + 2);
+
+
+  double x_dist = ceiling_x - x_location;
+  double y_dist = y_location - floor_y;
+  //double dist = x_dist * y_
+  *R = x_dist * y_dist *R1+(x_location-(double)floor_x)*(y_location-(double)floor_y)*R2
+    +((double)ceiling_x-x_location)*((double)ceiling_y-y_location)*R3+(x_location-(double)floor_x)*((double)ceiling_y-y_location)*R4;
+
+  *G=((double)ceiling_x-x_location)*(y_location-(double)floor_y)*G1+(x_location-(double)floor_x)*(y_location-(double)floor_y)*G2
+  +((double)ceiling_x-x_location)*((double)ceiling_y-y_location)*G3+(x_location-(double)floor_x)*((double)ceiling_y-y_location)*G4;
+
+  *B=((double)ceiling_x-x_location)*(y_location-(double)floor_y)*B1+(x_location-(double)floor_x)*(y_location-(double)floor_y)*B2
+  +((double)ceiling_x-x_location)*((double)ceiling_y-y_location)*B3+(x_location-(double)floor_x)*((double)ceiling_y-y_location)*B4;
+
+  //std::cout<<" 1: "<<((double)ceiling_x-x_location)*(y_location-(double)floor_y)*R1<<" 2: "<<(x_location-(double)floor_x)*(y_location-(double)floor_y)*R2<<" 3: "
+  //<<((double)ceiling_x-x_location)*((double)ceiling_y-y_location)*R3<<" R2: "<<R2<<std::endl;
+
+
+
+  //im->rgbdata=(void *)calloc(size_x*size_y*3,sizeof(unsigned char));
+
  return;
 }
 
@@ -747,6 +1009,99 @@ struct view *setupView(struct point3D *e, struct point3D *g, struct point3D *up,
 /////////////////////////////////////////
 // Image I/O section
 /////////////////////////////////////////
+
+void read_ply_file(const std::string & filename, std::vector<float>& verts, std::vector<uint32_t>& faces)
+{
+	// Tinyply can and will throw exceptions at you!
+	try
+	{
+		// Read the file and create a std::istringstream suitable
+		// for the lib -- tinyply does not perform any file i/o.
+		std::ifstream ss(filename, std::ios::binary);
+
+		// Parse the ASCII header fields
+		PlyFile file(ss);
+
+		for (auto e : file.get_elements())
+		{
+			std::cout << "element - " << e.name << " (" << e.size << ")" << std::endl;
+			for (auto p : e.properties)
+			{
+				std::cout << "\tproperty - " << p.name << " (" << PropertyTable[p.propertyType].str << ")" << std::endl;
+			}
+		}
+		std::cout << std::endl;
+
+		for (auto c : file.comments)
+		{
+			std::cout << "Comment: " << c << std::endl;
+		}
+
+		// Define containers to hold the extracted data. The type must match
+		// the property type given in the header. Tinyply will interally allocate the
+		// the appropriate amount of memory.
+		std::vector<float> norms;
+		std::vector<uint8_t> colors;
+
+		std::vector<float> uvCoords;
+
+		uint32_t vertexCount, normalCount, colorCount, faceCount, faceTexcoordCount, faceColorCount;
+		vertexCount = normalCount = colorCount = faceCount = faceTexcoordCount = faceColorCount = 0;
+
+		// The count returns the number of instances of the property group. The vectors
+		// above will be resized into a multiple of the property group size as
+		// they are "flattened"... i.e. verts = {x, y, z, x, y, z, ...}
+		vertexCount = file.request_properties_from_element("vertex", { "x", "y", "z" }, verts);
+		normalCount = file.request_properties_from_element("vertex", { "nx", "ny", "nz" }, norms);
+		colorCount = file.request_properties_from_element("vertex", { "red", "green", "blue", "alpha" }, colors);
+
+		// For properties that are list types, it is possibly to specify the expected count (ideal if a
+		// consumer of this library knows the layout of their format a-priori). Otherwise, tinyply
+		// defers allocation of memory until the first instance of the property has been found
+		// as implemented in file.read(ss)
+		faceCount = file.request_properties_from_element("face", { "vertex_indices" }, faces, 3);
+		faceTexcoordCount = file.request_properties_from_element("face", { "texcoord" }, uvCoords, 6);
+
+		// Now populate the vectors...
+		timepoint before = now();
+		file.read(ss);
+		timepoint after = now();
+
+		// Good place to put a breakpoint!
+		std::cout << "Parsing took " << difference_micros(before, after) << "μs: " << std::endl;
+		std::cout << "\tRead " << verts.size() << " total vertices (" << vertexCount << " properties)." << std::endl;
+		std::cout << "\tRead " << norms.size() << " total normals (" << normalCount << " properties)." << std::endl;
+		std::cout << "\tRead " << colors.size() << " total vertex colors (" << colorCount << " properties)." << std::endl;
+		std::cout << "\tRead " << faces.size() << " total faces (triangles) (" << faceCount << " properties)." << std::endl;
+		std::cout << "\tRead " << uvCoords.size() << " total texcoords (" << faceTexcoordCount << " properties)." << std::endl;
+
+		/*
+		// Fixme - tinyply isn't particularly sensitive to mismatched properties and prefers to crash instead of throw. Use
+		// actual data from parsed headers instead of manually defining properties added to a new file like below:
+
+		std::filebuf fb;
+		fb.open("converted.ply", std::ios::out | std::ios::binary);
+		std::ostream outputStream(&fb);
+
+		PlyFile myFile;
+
+		myFile.add_properties_to_element("vertex", { "x", "y", "z" }, verts);
+		myFile.add_properties_to_element("vertex", { "red", "green", "blue" }, colors);
+		myFile.add_properties_to_element("face", { "vertex_indices" }, faces, 3, PlyProperty::Type::UINT8);
+
+		myFile.comments.push_back("generated by tinyply");
+		myFile.write(outputStream, true);
+
+		fb.close();
+		*/
+	}
+
+	catch (const std::exception & e)
+	{
+		std::cerr << "Caught exception: " << e.what() << std::endl;
+	}
+}
+
 struct image *readPPMimage(const char *filename)
 {
  // Reads an image from a .ppm file. A .ppm file is a very simple image representation

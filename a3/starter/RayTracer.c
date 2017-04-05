@@ -19,12 +19,22 @@
 */
 
 #include "utils.h"
-
+#include "Fast-BVH/BVH.h"
+#include "Fast-BVH/Triangle.h"
+#include "Fast-BVH/Sphere.h"
+using std::vector;
 // A couple of global structures and data: An object list, a light list, and the
 // maximum recursion depth
 struct object3D *object_list;
 struct pointLS *light_list;
+struct image *env_list[5];
+
+
+std::unordered_map<int, object3D*> index_to_obj;
+BVH *bvh;
+vector<Object*> objects;
 int MAX_DEPTH;
+
 
 void buildScene(void)
 {
@@ -47,6 +57,7 @@ void buildScene(void)
  struct pointLS *l;
  struct point3D p;
 
+
  ///////////////////////////////////////
  // TO DO: For Assignment 3 you have to use
  //        the simple scene provided
@@ -63,60 +74,114 @@ void buildScene(void)
  // Insert a couple of objects. A plane and two spheres
  // with some transformations.
 
- // Let's add a plane
- // Note the parameters: ra, rd, rs, rg, R, G, B, alpha, r_index, and shinyness)
- o=newPlane(.05,.45,.75,.75,.55,.8,.75,0.7,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
-						// should see some reflections if all is done properly.
-						// Colour is close to cyan, and currently the plane is
-						// completely opaque (alpha=1). The refraction index is
-						// meaningless since alpha=1
- Scale(o,6,6,1);				// Do a few transforms...
- RotateZ(o,PI/1.20);
- RotateX(o,PI/2.25);
- Translate(o,0,-3,10);
- invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
-						// and store the inverse
-						// transform for this object!
- insertObject(o,&object_list);			// Insert into object list
+ env_list[0]=readPPMimage(POS_X_PATH);
+ env_list[1]=readPPMimage(NEG_X_PATH);
+ env_list[2]=readPPMimage(POS_Y_PATH);
+ env_list[3]=readPPMimage(NEG_Y_PATH);
+ env_list[4]=readPPMimage(POS_Z_PATH);
+ env_list[5]=readPPMimage(NEG_Z_PATH);
+
+
+
+  /* Ground plane */
+  //o=newPlane(.05,.35,.35,.05,.55,.8,.75,1,1,1);	// Note the plane is highly-reflective (rs=rg=.75) so we
+//						// should see some reflections if all is done properly.
+//						// Colour is close to cyan, and currently the plane is
+//						// completely opaque (alpha=1). The refraction index is
+//						// meaningless since alpha=1
+// Scale(o,6,6,1.1);
+// RotateZ(o,PI);
+// Translate(o,0,-6,0);
+// RotateX(o,PI/2.0);
+// Translate(o,0,-6,0);
+// //RotateX(o,PI/2.25);
+// Translate(o,0,0,15);
+// invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
+//						// and store the inverse
+//						// transform for this object!
+// insertObject(o,&object_list);			// Insert into object list
+//
+//  /* Up plane */
+//  o=newPlane(.05,.75,.75,.05,.55,.8,.75,1,1,1);	// Note the plane is highly-reflective (rs=rg=.75) so we
+//						// should see some reflections if all is done properly.
+//						// Colour is close to cyan, and currently the plane is
+//						// completely opaque (alpha=1). The refraction index is
+//						// meaningless since alpha=1
+// Scale(o,6,6,1.1);
+// //RotateZ(o,PI);
+// Translate(o,0,6,0);
+// RotateX(o,-PI/2.0);
+// Translate(o,0,6,0);
+// //RotateX(o,PI/2.25);
+// Translate(o,0,0,15);
+// invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
+//						// and store the inverse
+//						// transform for this object!
+// insertObject(o,&object_list);			// Insert into object list
+// loadTexture(o,"posy.PPM");
+//
+//
 
  // Let's add a couple spheres
- o=newSphere(.05,.95,.55,.55,1,.25,.25,0.7,0.6,6);
+ o=newSphere(.05,.95,.55,0.5,1,.25,.25,0.7,0.6,6);
  Scale(o,.75,.5,1.5);
  RotateY(o,PI/2);
  Translate(o,-1.45,1.1,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
  insertObject(o,&object_list);
+ Vector3 pos(0, 2, 0);
+ objects.push_back(new Sphere(pos, .5f, 0));
+ index_to_obj[0] = o;
 
- o=newSphere(.05,.95,.55,.55,.75,.95,.55,1,1,6);
- Scale(o,.5,2.0,1.0);
- RotateZ(o,PI/1.5);
- Translate(o,1.75,1.25,5.0);
- invert(&o->T[0][0],&o->Tinv[0][0]);
- insertObject(o,&object_list);
+// o=newSphere(.05,.95,.55,0.05,0,0,0,0.6,1,6);
+// Scale(o,.5,2.0,1.0);
+// RotateZ(o,PI/1.5);
+// Translate(o,1.75,1.25,5.0);
+// invert(&o->T[0][0],&o->Tinv[0][0]);
+// insertObject(o,&object_list);
+// pos = Vector3(0, -2, 0);
+// objects.push_back(new Sphere(pos, .5f, 1));
+// index_to_obj[1] = o;
+
+ vector<uint32_t> faces;
+ vector<float> verts;
+ read_ply_file(MESH_PATH, verts, faces);
+ // Let's add a couple meshes
+ int index = 1;
+ Vector3 scale_factor(6,6,6);
+ Vector3 translate(0,-1,-6);
+ for (int i = 0; i < faces.size(); i += 3)
+ {
+    o = newTriangle(.05,.95,.55,.55,1,.25,.25,1,0.6,6);
+    insertObject(o, &object_list);
+    Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
+    Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
+    Vector3 v3(verts[faces[i+2]*3], verts[faces[i+2]*3+1], verts[faces[i+2]*3+2]);
+    v1 = scale_factor.cmul(v1) + translate;
+    v2 = scale_factor.cmul(v2) + translate;
+    v3 = scale_factor.cmul(v3) + translate;
+    objects.push_back(new Triangle(v1, v2, v3, index));
+    index_to_obj[index] = o;
+    index++;
+ }
 
  // Insert a single point light source.
- p.px=0;
- p.py=15.5;
- p.pz=-5.5;
+ p.px=-5;
+ p.py=30;
+ p.pz=1;
  p.pw=1;
- l=newPLS(&p,.95,.95,.95);
+ l=newPLS(&p,.65,.65,.65);
  insertPLS(l,&light_list);
 
- /*p.px=15.5;
- p.py=15.5;
- p.pz=-5.5;
+ p.px=5;
+ p.py=30;
+ p.pz=1;
  p.pw=1;
- l=newPLS(&p,.95,.95,.95);
+ l=newPLS(&p,.65,.65,.65);
  insertPLS(l,&light_list);
-*/
 
- // End of simple scene for Assignment 3
- // Keep in mind that you can define new types of objects such as cylinders and parametric surfaces,
- // or, you can create code to handle arbitrary triangles and then define objects as surface meshes.
- //
- // Remember: A lot of the quality of your scene will depend on how much care you have put into defining
- //           the relflectance properties of your objects, and the number and type of light sources
- //           in the scene.
+ bvh = new BVH(&objects);
+
 }
  void areaLighting(struct object3D* obj, struct pointLS* centre_light, struct point3D *p, struct point3D *n,struct ray3D *ray, int depth, double R, double G, double B, struct colourRGB* col, int sample_num )
  {
@@ -188,7 +253,8 @@ void buildScene(void)
         normalize(&changed_direction);
         ray3D *test_ray = newRay(p, &changed_direction);
       /* test if the altered ray can reach this point */
-        isBlock(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+        findFirstHit_BVH(test_ray, false, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+        //findFirstHit(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
         free(test_ray);
 
         if (lambda > 0) {
@@ -202,7 +268,7 @@ void buildScene(void)
 	          sample_light->p0.py = origin.py;
 	          sample_light->p0.pz = origin.pz;
 	          sample_light->next = NULL;
-            phongModel(obj, sample_light, p, n, ray, depth, R, G, B, &accumulated_colour);
+              phongModel(obj, sample_light, p, n, ray, depth, R, G, B, &accumulated_colour);
 	          free(sample_light);
         }
       }
@@ -284,13 +350,15 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
    R=obj->col.R;
    G=obj->col.G;
    B=obj->col.B;
+   //std::cout<<"gotcha"<<std::endl;
  }
  else if (obj != NULL && obj->texImg != NULL)
  {
   // Get object colour from the texture given the texture coordinates (a,b), and the texturing function
   // for the object. Note that we will use textures also for Photon Mapping.
+  obj->textureMap(obj->texImg,a,b,&R,&G,&B);
+  //derict return --Only need texture//
   //printf("here\n");
-   obj->textureMap(obj->texImg,a,b,&R,&G,&B);
  }
 
  //////////////////////////////////////////////////////////////
@@ -306,7 +374,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // Loop through each light source
  struct pointLS* lightPtr = light_list;
  while (lightPtr) {
-    areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 6);
+    areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 1);
     lightPtr = lightPtr->next;
  }
      // reflection ray
@@ -315,23 +383,26 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     reflectedCol.R = reflectedCol.G = reflectedCol.B = 0;
     rayTrace(reflectedRay, depth + 1, &reflectedCol, obj);
     free(reflectedRay);
+
     reflectedCol.R *= obj->alb.rg;
     reflectedCol.G *= obj->alb.rg;
     reflectedCol.B *= obj->alb.rg;
 
+
     // refraction ray
-   struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
+   /*struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
    struct colourRGB refractedCol;
    refractedCol.R = refractedCol.G = refractedCol.B = 0;
    if (obj->alpha < 1) rayTrace(refractedRay, depth + 1, &refractedCol, obj);
-   free(refractedRay);
+
+   free(refractedRay);*/
    //refractedCol.R *= obj->r_index;
    //refractedCol.G *= obj->r_index;
    //refractedCol.B *= obj->r_index;
 
-    col->R += (tmp_col.R + reflectedCol.R + refractedCol.R);
-    col->G += (tmp_col.G + reflectedCol.G + refractedCol.G);
-    col->B += (tmp_col.B + reflectedCol.B + refractedCol.B);
+    col->R += (tmp_col.R + reflectedCol.R);// + refractedCol.R);
+    col->G += (tmp_col.G + reflectedCol.G);// + refractedCol.G);
+    col->B += (tmp_col.B + reflectedCol.B);// + refractedCol.B);
  return;
 
 }
@@ -368,6 +439,27 @@ void isBlock(struct ray3D *ray, double *lambda, struct object3D *Os, struct obje
     objPtr = objPtr->next;
   }
 
+}
+void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b)
+{
+  //wrap BVH method
+  Vector3 ray_o(ray->p0.px, ray->p0.py, ray->p0.pz);
+  Vector3 ray_d(ray->d.px, ray->d.py, ray->d.pz);
+  Ray rayBVH(ray_o, normalize(ray_d));
+  //std::cout<< "x: " << rayBVH.d.x << " y: " << rayBVH.d.y << " z:" << rayBVH.d.z << std::endl;
+  IntersectionInfo I;
+  bool hit = bvh->getIntersection(rayBVH, &I, occlusion);
+  if (!hit) {
+    *lambda = -1;
+    *obj = NULL;
+  } else {
+    *lambda = I.t;
+    Vector3 normal = I.object->getNormal(I);
+    n->px = normal.x, n->py = normal.y, n->pz = normal.z, n->pw = 0;
+    p->px = I.hit.x, p->py = I.hit.y, p->pz = I.hit.z, p->pw = 1;
+    *obj = index_to_obj[I.object->getIndex()];
+    // TODO add a, b
+  }
 }
 void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b)
 {
@@ -447,11 +539,30 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  ///////////////////////////////////////////////////////
  /* obj is null because it is the first recursion so not from any object */
  /* By the end of this function call, obj will point to the object this ray firstly intersects */
- findFirstHit(ray, &lambda, Os, &obj, &p, &n, &a, &b);
-    if(lambda > 0 )
+ //findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
+ findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
+    if(lambda > 0)
     {
       rtShade(obj, &p, &n, ray, depth, a, b, col);
     }
+    else
+    {
+      if (depth == 1) {
+        double R, G, B;
+        int index;
+        convert_xyz_to_cube_uv(ray->p0.px + 2 * ray->d.px, ray->p0.py + 2 * ray->d.py, ray->p0.pz + 2 * ray->d.pz, &index, &a, &b);
+        texMap(env_list[index], a, b, &R, &G, &B);
+        col->R = R, col->G = G, col->B = B;
+        return;
+      } else {
+        double R, G, B;
+        int index;
+        convert_xyz_to_cube_uv(ray->p0.px + 2 * ray->d.px, ray->p0.py + 2 * ray->d.py, ray->p0.pz + 2 * ray->d.pz, &index, &a, &b);
+        texMap(env_list[index], a, b, &R, &G, &B);
+        col->R += R, col->G += G, col->B += B;
+      }
+    }
+
 }
 
  void add_antialiasing(point3D eye,double x,double y,double z,int multiplier, double pixel_boundary, colourRGB *col )
@@ -462,6 +573,9 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
   accumulated_colour.G=0;
   accumulated_colour.B=0;
   colourRGB colour;
+  colour.R=0;
+  colour.G=0;
+  colour.B=0;
   double boundary=pixel_boundary/(double)multiplier;
   int i=0;
   int j=0;
@@ -485,16 +599,24 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
       double y_offset=boundary*y_r*0.5;
 
 
+
       point3D direction;
       direction.px=x-0.5*pixel_boundary+(double)i*boundary+0.5*boundary+x_offset-eye.px;
       direction.py=y+0.5*pixel_boundary-(double)j*boundary-0.5*boundary-y_offset-eye.py;
       direction.pz=z;
       direction.pw=0;
-      normalize(&direction);
+      //normalize(&direction);
       ray3D *ray=newRay(&eye, &direction);
 
-      rayTrace(ray,1,&accumulated_colour,NULL);
+      rayTrace(ray,1,&colour,NULL);
+      accumulated_colour.R+=colour.R;
+      accumulated_colour.G+=colour.G;
+      accumulated_colour.B+=colour.B;
       free(ray);
+      colour.R=0;
+      colour.G=0;
+      colour.B=0;
+
       }
   }
 
@@ -585,7 +707,7 @@ int main(int argc, char *argv[])
  // Camera center is at (0,0,-1)
  e.px=0;
  e.py=0;
- e.pz=-3;
+ e.pz=-8;
  e.pw=1;
 
  // To define the gaze vector, we choose a point 'pc' in the scene that
@@ -601,7 +723,35 @@ int main(int argc, char *argv[])
  up.py=1;
  up.pz=0;
  up.pw=0;
-
+//
+// struct point3D z_direction;
+// z_direction.px=0;
+// z_direction.py=0;
+// z_direction.pz=1;
+// z_direction.pw=0;
+//
+// struct point3D x_direction;
+// x_direction.px=1;
+// x_direction.py=0;
+// x_direction.pz=0;
+// x_direction.pw=0;
+//
+// struct point3D z_direction;
+// y_direction.px=0;
+// y_direction.py=1;
+// y_direction.pz=0;
+// y_direction.pw=0;
+//
+//
+// object3D *camera_transform=newPlane(.05,.35,.35,.05,.55,.8,.75,1,1,1);
+// Translate(o,-e.px,-e.py,-e.pz);
+// double cos=((g.pz)*(g.pz))/((g.pz)*(sqrt(g.px*g.px+g.py*g.py+g.py*g.py)));
+// double y_rotation=acos(cos);
+//
+// dot(&z_direction,&g);
+// RotateZ(o,PI);
+// RotateX(o,PI/2.0);
+// Translate(o,0,-6,0);
  // Set up view with given the above vectors, a 4x4 window,
  // and a focal length of -1 (why? where is the image plane?)
  // Note that the top-left corner of the window is at (-2, 2)
@@ -669,7 +819,7 @@ int main(int argc, char *argv[])
     col_thread.R = col_thread.G = col_thread.B = 0;
 
     if (antialiasing) {
-      add_antialiasing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f), 4, du, &col_thread);
+      add_antialiasing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f), 3, du, &col_thread);
     }
     else rayTrace(ray_thread, 1, &col_thread, NULL);
     *(rgbIm + 3 * (j * sx  + i)) = col_thread.R * 255 > 255 ? 255 : col_thread.R * 255;
