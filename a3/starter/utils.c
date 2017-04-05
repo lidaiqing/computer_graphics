@@ -10,6 +10,20 @@
 #include "utils.h"
 #include <stdlib.h>
 #include <math.h>
+using namespace tinyply;
+
+typedef std::chrono::time_point<std::chrono::high_resolution_clock> timepoint;
+std::chrono::high_resolution_clock c;
+
+inline std::chrono::time_point<std::chrono::high_resolution_clock> now()
+{
+	return c.now();
+}
+
+inline double difference_micros(timepoint start, timepoint end)
+{
+	return (double)std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+}
 
 template<class T>
 const T& min(const T& a, const T& b)
@@ -127,6 +141,35 @@ inline void normalTransform(struct point3D *n_orig, struct point3D *n_transforme
 /////////////////////////////////////////////
 // Object management section
 /////////////////////////////////////////////
+struct object3D *newTriangle(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double r_index, double shiny)
+{
+
+ struct object3D *triangle=(struct object3D *)calloc(1,sizeof(struct object3D));
+
+ if (!triangle) fprintf(stderr,"Unable to allocate new plane, out of memory!\n");
+ else
+ {
+  triangle->alb.ra=ra;
+  triangle->alb.rd=rd;
+  triangle->alb.rs=rs;
+  triangle->alb.rg=rg;
+  triangle->col.R=r;
+  triangle->col.G=g;
+  triangle->col.B=b;
+  triangle->alpha=alpha;
+  triangle->r_index=r_index;
+  triangle->shinyness=shiny;
+  triangle->intersect=NULL;
+  triangle->texImg=NULL;
+  memcpy(&triangle->T[0][0],&eye4x4[0][0],16*sizeof(double));
+  memcpy(&triangle->Tinv[0][0],&eye4x4[0][0],16*sizeof(double));
+  triangle->textureMap=&texMap;
+  triangle->frontAndBack=1;
+  triangle->isLightSource=0;
+ }
+ return(triangle);
+}
+
 struct object3D *newPlane(double ra, double rd, double rs, double rg, double r, double g, double b, double alpha, double r_index, double shiny)
 {
  // Intialize a new plane with the specified parameters:
@@ -965,6 +1008,99 @@ struct view *setupView(struct point3D *e, struct point3D *g, struct point3D *up,
 /////////////////////////////////////////
 // Image I/O section
 /////////////////////////////////////////
+
+void read_ply_file(const std::string & filename, std::vector<float>& verts, std::vector<uint32_t>& faces)
+{
+	// Tinyply can and will throw exceptions at you!
+	try
+	{
+		// Read the file and create a std::istringstream suitable
+		// for the lib -- tinyply does not perform any file i/o.
+		std::ifstream ss(filename, std::ios::binary);
+
+		// Parse the ASCII header fields
+		PlyFile file(ss);
+
+		for (auto e : file.get_elements())
+		{
+			std::cout << "element - " << e.name << " (" << e.size << ")" << std::endl;
+			for (auto p : e.properties)
+			{
+				std::cout << "\tproperty - " << p.name << " (" << PropertyTable[p.propertyType].str << ")" << std::endl;
+			}
+		}
+		std::cout << std::endl;
+
+		for (auto c : file.comments)
+		{
+			std::cout << "Comment: " << c << std::endl;
+		}
+
+		// Define containers to hold the extracted data. The type must match
+		// the property type given in the header. Tinyply will interally allocate the
+		// the appropriate amount of memory.
+		std::vector<float> norms;
+		std::vector<uint8_t> colors;
+
+		std::vector<float> uvCoords;
+
+		uint32_t vertexCount, normalCount, colorCount, faceCount, faceTexcoordCount, faceColorCount;
+		vertexCount = normalCount = colorCount = faceCount = faceTexcoordCount = faceColorCount = 0;
+
+		// The count returns the number of instances of the property group. The vectors
+		// above will be resized into a multiple of the property group size as
+		// they are "flattened"... i.e. verts = {x, y, z, x, y, z, ...}
+		vertexCount = file.request_properties_from_element("vertex", { "x", "y", "z" }, verts);
+		normalCount = file.request_properties_from_element("vertex", { "nx", "ny", "nz" }, norms);
+		colorCount = file.request_properties_from_element("vertex", { "red", "green", "blue", "alpha" }, colors);
+
+		// For properties that are list types, it is possibly to specify the expected count (ideal if a
+		// consumer of this library knows the layout of their format a-priori). Otherwise, tinyply
+		// defers allocation of memory until the first instance of the property has been found
+		// as implemented in file.read(ss)
+		faceCount = file.request_properties_from_element("face", { "vertex_indices" }, faces, 3);
+		faceTexcoordCount = file.request_properties_from_element("face", { "texcoord" }, uvCoords, 6);
+
+		// Now populate the vectors...
+		timepoint before = now();
+		file.read(ss);
+		timepoint after = now();
+
+		// Good place to put a breakpoint!
+		std::cout << "Parsing took " << difference_micros(before, after) << "μs: " << std::endl;
+		std::cout << "\tRead " << verts.size() << " total vertices (" << vertexCount << " properties)." << std::endl;
+		std::cout << "\tRead " << norms.size() << " total normals (" << normalCount << " properties)." << std::endl;
+		std::cout << "\tRead " << colors.size() << " total vertex colors (" << colorCount << " properties)." << std::endl;
+		std::cout << "\tRead " << faces.size() << " total faces (triangles) (" << faceCount << " properties)." << std::endl;
+		std::cout << "\tRead " << uvCoords.size() << " total texcoords (" << faceTexcoordCount << " properties)." << std::endl;
+
+		/*
+		// Fixme - tinyply isn't particularly sensitive to mismatched properties and prefers to crash instead of throw. Use
+		// actual data from parsed headers instead of manually defining properties added to a new file like below:
+
+		std::filebuf fb;
+		fb.open("converted.ply", std::ios::out | std::ios::binary);
+		std::ostream outputStream(&fb);
+
+		PlyFile myFile;
+
+		myFile.add_properties_to_element("vertex", { "x", "y", "z" }, verts);
+		myFile.add_properties_to_element("vertex", { "red", "green", "blue" }, colors);
+		myFile.add_properties_to_element("face", { "vertex_indices" }, faces, 3, PlyProperty::Type::UINT8);
+
+		myFile.comments.push_back("generated by tinyply");
+		myFile.write(outputStream, true);
+
+		fb.close();
+		*/
+	}
+
+	catch (const std::exception & e)
+	{
+		std::cerr << "Caught exception: " << e.what() << std::endl;
+	}
+}
+
 struct image *readPPMimage(const char *filename)
 {
  // Reads an image from a .ppm file. A .ppm file is a very simple image representation

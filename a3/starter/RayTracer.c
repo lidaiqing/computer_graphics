@@ -30,9 +30,9 @@ struct pointLS *light_list;
 struct image *env_list[5];
 
 
-
 std::unordered_map<int, object3D*> index_to_obj;
 BVH *bvh;
+vector<Object*> objects;
 int MAX_DEPTH;
 
 
@@ -57,6 +57,7 @@ void buildScene(void)
  struct pointLS *l;
  struct point3D p;
 
+<<<<<<< HEAD
  ///////////////////////////////////////
  // TO DO: For Assignment 3 you have to use
  //        the simple scene provided
@@ -200,25 +201,47 @@ void buildScene(void)
  vector<Object*> objects;
 
  // Let's add a couple spheres
- o=newSphere(.05,.95,.55,0.5,1,.25,.25,0.7,0.6,6);
- Scale(o,.75,.5,1.5);
- RotateY(o,PI/2);
- Translate(o,-1.45,1.1,3.5);
- invert(&o->T[0][0],&o->Tinv[0][0]);
- insertObject(o,&object_list);
- Vector3 pos(0, 2, 0);
- objects.push_back(new Sphere(pos, .5f, 0));
- index_to_obj[0] = o;
+// o=newSphere(.05,.95,.55,0.5,1,.25,.25,0.7,0.6,6);
+// Scale(o,.75,.5,1.5);
+// RotateY(o,PI/2);
+// Translate(o,-1.45,1.1,3.5);
+// invert(&o->T[0][0],&o->Tinv[0][0]);
+// insertObject(o,&object_list);
+// Vector3 pos(0, 2, 0);
+// objects.push_back(new Sphere(pos, .5f, 0));
+// index_to_obj[0] = o;
+//
+// o=newSphere(.05,.95,.55,0.05,0,0,0,0.6,1,6);
+// Scale(o,.5,2.0,1.0);
+// RotateZ(o,PI/1.5);
+// Translate(o,1.75,1.25,5.0);
+// invert(&o->T[0][0],&o->Tinv[0][0]);
+// insertObject(o,&object_list);
+// pos = Vector3(0, -2, 0);
+// objects.push_back(new Sphere(pos, .5f, 1));
+// index_to_obj[1] = o;
 
- o=newSphere(.05,.95,.55,0.05,0,0,0,0.6,1,6);
- Scale(o,.5,2.0,1.0);
- RotateZ(o,PI/1.5);
- Translate(o,1.75,1.25,5.0);
- invert(&o->T[0][0],&o->Tinv[0][0]);
- insertObject(o,&object_list);
- pos = Vector3(0, -2, 0);
- objects.push_back(new Sphere(pos, .5f, 1));
- index_to_obj[1] = o;
+ vector<uint32_t> faces;
+ vector<float> verts;
+ read_ply_file(MESH_PATH, verts, faces);
+ // Let's add a couple meshes
+ int index = 0;
+ double factor = 10.0;
+ for (int i = 0; i < faces.size(); i += 3)
+ {
+    o = newTriangle(.05,.95,.55,.05,1,.25,.25,1,0.6,6);
+    insertObject(o, &object_list);
+    Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
+    Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
+    Vector3 v3(verts[faces[i+2]*3], verts[faces[i+2]*3+1], verts[faces[i+2]*3+2]);
+    v1 = factor * v1;
+    v2 = factor * v2;
+    v3 = factor * v3;
+    objects.push_back(new Triangle(v1, v2, v3, index));
+    index_to_obj[index] = o;
+    index++;
+ }
+
  // Insert a single point light source.
  p.px=-5;
  p.py=30;
@@ -236,13 +259,7 @@ void buildScene(void)
 
 
  bvh = new BVH(&objects);
- // End of simple scene for Assignment 3
- // Keep in mind that you can define new types of objects such as cylinders and parametric surfaces,
- // or, you can create code to handle arbitrary triangles and then define objects as surface meshes.
- //
- // Remember: A lot of the quality of your scene will depend on how much care you have put into defining
- //           the relflectance properties of your objects, and the number and type of light sources
- //           in the scene.
+
 }
  void areaLighting(struct object3D* obj, struct pointLS* centre_light, struct point3D *p, struct point3D *n,struct ray3D *ray, int depth, double R, double G, double B, struct colourRGB* col, int sample_num )
  {
@@ -451,14 +468,15 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
 
 
     // refraction ray
-   struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
+   /*struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
    struct colourRGB refractedCol;
    refractedCol.R = refractedCol.G = refractedCol.B = 0;
    if (obj->alpha < 1) rayTrace(refractedRay, depth + 1, &refractedCol, obj);
-   free(refractedRay);
-   refractedCol.R *= obj->r_index;
-   refractedCol.G *= obj->r_index;
-   refractedCol.B *= obj->r_index;
+
+   free(refractedRay);*/
+   //refractedCol.R *= obj->r_index;
+   //refractedCol.G *= obj->r_index;
+   //refractedCol.B *= obj->r_index;
 
     col->R += (tmp_col.R + reflectedCol.R);// + refractedCol.R);
     col->G += (tmp_col.G + reflectedCol.G);// + refractedCol.G);
@@ -503,9 +521,10 @@ void isBlock(struct ray3D *ray, double *lambda, struct object3D *Os, struct obje
 void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b)
 {
   //wrap BVH method
-  Vector3 ray_o = {ray->p0.px, ray->p0.py, ray->p0.pz};
-  Vector3 ray_d = {ray->d.px, ray->d.py, ray->d.pz};
+  Vector3 ray_o(ray->p0.px, ray->p0.py, ray->p0.pz);
+  Vector3 ray_d(ray->d.px, ray->d.py, ray->d.pz);
   Ray rayBVH(ray_o, normalize(ray_d));
+  //std::cout<< "x: " << rayBVH.d.x << " y: " << rayBVH.d.y << " z:" << rayBVH.d.z << std::endl;
   IntersectionInfo I;
   bool hit = bvh->getIntersection(rayBVH, &I, occlusion);
   if (!hit) {
@@ -599,8 +618,9 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  /* obj is null because it is the first recursion so not from any object */
  /* By the end of this function call, obj will point to the object this ray firstly intersects */
  //findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
- findFirstHit(ray, &lambda, Os, &obj, &p, &n, &a, &b);
-    if(lambda > 0 )
+ findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
+    if(lambda > 0)
+>>>>>>> 8e1b6c2dadd98f4cd9396f7751ba2fe42c8e5e92
     {
       rtShade(obj, &p, &n, ray, depth, a, b, col);
     }
@@ -675,6 +695,7 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
       colour.R=0;
       colour.G=0;
       colour.B=0;
+
       }
   }
 
@@ -765,7 +786,7 @@ int main(int argc, char *argv[])
  // Camera center is at (0,0,-1)
  e.px=0;
  e.py=0;
- e.pz=-3;
+ e.pz=-10;
  e.pw=1;
 
  // To define the gaze vector, we choose a point 'pc' in the scene that
