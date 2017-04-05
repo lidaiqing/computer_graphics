@@ -22,6 +22,7 @@
 #include "Fast-BVH/BVH.h"
 #include "Fast-BVH/Triangle.h"
 #include "Fast-BVH/Sphere.h"
+#include "Fast-BVH/Plane.h"
 using std::vector;
 // A couple of global structures and data: An object list, a light list, and the
 // maximum recursion depth
@@ -35,7 +36,13 @@ BVH *bvh;
 vector<Object*> objects;
 int MAX_DEPTH;
 
-
+void transformVert(Vector3& v, struct object3D* obj)
+{
+  struct point3D V;
+  V.px = v.x, V.py = v.y, V.pz = v.z, V.pw = 1;
+  matVecMult(obj->T, &V);
+  v.x = V.px, v.y = V.py, v.z = V.pz;
+}
 void buildScene(void)
 {
  // Sets up all objects in the scene. This involves creating each object,
@@ -84,45 +91,61 @@ void buildScene(void)
 
 
 
-  /* Ground plane */
-  //o=newPlane(.05,.35,.35,.05,.55,.8,.75,1,1,1);	// Note the plane is highly-reflective (rs=rg=.75) so we
-//						// should see some reflections if all is done properly.
-//						// Colour is close to cyan, and currently the plane is
-//						// completely opaque (alpha=1). The refraction index is
-//						// meaningless since alpha=1
-// Scale(o,6,6,1.1);
-// RotateZ(o,PI);
-// Translate(o,0,-6,0);
-// RotateX(o,PI/2.0);
-// Translate(o,0,-6,0);
-// //RotateX(o,PI/2.25);
-// Translate(o,0,0,15);
-// invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
-//						// and store the inverse
-//						// transform for this object!
-// insertObject(o,&object_list);			// Insert into object list
+ o=newPlane(.05,.75,.75,.55,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
+           // should see some reflections if all is done properly.
+           // Colour is close to cyan, and currently the plane is
+           // completely opaque (alpha=1). The refraction index is
+           // meaningless since alpha=1
+Scale(o,6,6,1);				// Do a few transforms...
+RotateZ(o,PI/1.20);
+RotateX(o,PI/2.25);
+Translate(o,0,-3,10);
+invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
+           // and store the inverse
+           // transform for this object!
+insertObject(o,&object_list);			// Insert into object list
+Vector3 v1(-1,-1,0);
+Vector3 v2(-1, 1,0);
+Vector3 v3(1,1,0);
+Vector3 v4(1,-1,0);
 
+transformVert(v1,o);
+transformVert(v2,o);
+transformVert(v3,o);
+transformVert(v4,o);
+objects.push_back(new Plane(v1,v2,v3,v4,o,0));
+index_to_obj[0] = o;
 
- //Let's add a couple spheres
- o=newSphere(.05,.95,.55,0.05,1,.25,.25,0.7,0.6,6);
- Scale(o,.75,.5,1.5);
- RotateY(o,PI/2);
- Translate(o,-1.45,1.1,3.5);
- invert(&o->T[0][0],&o->Tinv[0][0]);
- insertObject(o,&object_list);
- Vector3 pos(0, 0, -2);
- objects.push_back(new Sphere(pos, 2.0f, 0));
- index_to_obj[0] = o;
-//
-// o=newSphere(.05,.95,.55,0.05,0,0,0,0.6,1,6);
-// Scale(o,.5,2.0,1.0);
-// RotateZ(o,PI/1.5);
-// Translate(o,1.75,1.25,5.0);
-// invert(&o->T[0][0],&o->Tinv[0][0]);
-// insertObject(o,&object_list);
-// pos = Vector3(0, -2, -4);
-// objects.push_back(new Sphere(pos, .5f, 1));
-// index_to_obj[1] = o;
+// Let's add a couple spheres
+o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,6);
+Scale(o,.75,.5,1.5);
+RotateY(o,PI/2);
+Translate(o,-1.45,1.1,3.5);
+invert(&o->T[0][0],&o->Tinv[0][0]);
+insertObject(o,&object_list);
+
+Vector3 center(0,0,0);
+transformVert(center, o);
+objects.push_back(new Sphere(center,3,o,1));
+index_to_obj[1] = o;
+
+o=newSphere(.05,.95,.95,.05,.75,.95,.55,1,1,6);
+Scale(o,.5,2.0,1.0);
+RotateZ(o,PI/1.5);
+Translate(o,1.75,1.25,5.0);
+invert(&o->T[0][0],&o->Tinv[0][0]);
+insertObject(o,&object_list);
+
+transformVert(center, o);
+objects.push_back(new Sphere(center,3,o,2));
+index_to_obj[2] = o;
+// Insert a single point light source.
+p.px=0;
+p.py=15.5;
+p.pz=-5.5;
+p.pw=1;
+l=newPLS(&p,.65,.65,.65);
+insertPLS(l,&light_list);
 
  // vector<uint32_t> faces;
  // vector<float> verts;
@@ -145,21 +168,6 @@ void buildScene(void)
  //    index_to_obj[index] = o;
  //    index++;
  // }
-
- // Insert a single point light source.
- p.px=0;
- p.py=15;
- p.pz=-11;
- p.pw=1;
- l=newPLS(&p,.65,.65,.65);
- insertPLS(l,&light_list);
-
- p.px=3;
- p.py=15;
- p.pz=1;
- p.pw=1;
- l=newPLS(&p,.65,.65,.65);
- insertPLS(l,&light_list);
 
  bvh = new BVH(&objects);
 
@@ -241,6 +249,7 @@ void buildScene(void)
 
         if (lambda > 0) {
           // do not add contribute to color
+          return;
         } else {
 	          struct pointLS *sample_light=(struct pointLS *)malloc(sizeof(struct pointLS));
 	          sample_light->col.R = centre_light->col.R;
@@ -363,23 +372,20 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 4);
     lightPtr = lightPtr->next;
  }
- col->R += tmp_col.R;
- col->G += tmp_col.G;
- col->B += tmp_col.B;
      // reflection ray
-    // struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
-    // struct colourRGB reflectedCol;
-    // reflectedCol.R = reflectedCol.G = reflectedCol.B = 0;
-    // rayTrace(reflectedRay, depth + 1, &reflectedCol, obj);
-    // free(reflectedRay);
-    //
-    // reflectedCol.R *= obj->alb.rg;
-    // reflectedCol.G *= obj->alb.rg;
-    // reflectedCol.B *= obj->alb.rg;
-    //
-    // col->R += reflectedCol.R;
-    // col->G += reflectedCol.G;
-    // col->B += reflectedCol.B;
+    struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
+    struct colourRGB reflectedCol;
+    reflectedCol.R = reflectedCol.G = reflectedCol.B = 0;
+    rayTrace(reflectedRay, depth + 1, &reflectedCol, obj);
+    free(reflectedRay);
+
+    reflectedCol.R *= obj->alb.rg;
+    reflectedCol.G *= obj->alb.rg;
+    reflectedCol.B *= obj->alb.rg;
+
+    col->R += (tmp_col.R + reflectedCol.R);
+    col->G += (tmp_col.G + reflectedCol.G);
+    col->B += (tmp_col.B + reflectedCol.B);
     // refraction ray
    /*struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
    struct colourRGB refractedCol;
@@ -547,17 +553,19 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
     }
     else
     {
+      double factor = 2;
       if (depth == 1) {
         double R, G, B;
         int index;
-        convert_xyz_to_cube_uv(ray->p0.px + 2 * ray->d.px, ray->p0.py + 2 * ray->d.py, ray->p0.pz + 2 * ray->d.pz, &index, &a, &b);
+        convert_xyz_to_cube_uv(ray->p0.px + factor * ray->d.px, ray->p0.py + factor * ray->d.py, ray->p0.pz + factor * ray->d.pz, &index, &a, &b);
         texMap(env_list[index], a, b, &R, &G, &B);
         col->R = R, col->G = G, col->B = B;
         return;
       } else {
+        // if hit ground, return
         double R, G, B;
         int index;
-        convert_xyz_to_cube_uv(ray->p0.px + 2 * ray->d.px, ray->p0.py + 2 * ray->d.py, ray->p0.pz + 2 * ray->d.pz, &index, &a, &b);
+        convert_xyz_to_cube_uv(ray->p0.px + factor * ray->d.px, ray->p0.py + factor * ray->d.py, ray->p0.pz + factor * ray->d.pz, &index, &a, &b);
         texMap(env_list[index], a, b, &R, &G, &B);
         col->R += R, col->G += G, col->B += B;
       }
@@ -707,7 +715,7 @@ int main(int argc, char *argv[])
  // Camera center is at (0,0,-1)
  e.px=0;
  e.py=0;
- e.pz=-8;
+ e.pz=-3;
  e.pw=1;
 
  // To define the gaze vector, we choose a point 'pc' in the scene that
@@ -723,38 +731,7 @@ int main(int argc, char *argv[])
  up.py=1;
  up.pz=0;
  up.pw=0;
-//
-// struct point3D z_direction;
-// z_direction.px=0;
-// z_direction.py=0;
-// z_direction.pz=1;
-// z_direction.pw=0;
-//
-// struct point3D x_direction;
-// x_direction.px=1;
-// x_direction.py=0;
-// x_direction.pz=0;
-// x_direction.pw=0;
-//
-// struct point3D z_direction;
-// y_direction.px=0;
-// y_direction.py=1;
-// y_direction.pz=0;
-// y_direction.pw=0;
-//
-//
-// object3D *camera_transform=newPlane(.05,.35,.35,.05,.55,.8,.75,1,1,1);
-// Translate(o,-e.px,-e.py,-e.pz);
-// double cos=((g.pz)*(g.pz))/((g.pz)*(sqrt(g.px*g.px+g.py*g.py+g.py*g.py)));
-// double y_rotation=acos(cos);
-//
-// dot(&z_direction,&g);
-// RotateZ(o,PI);
-// RotateX(o,PI/2.0);
-// Translate(o,0,-6,0);
- // Set up view with given the above vectors, a 4x4 window,
- // and a focal length of -1 (why? where is the image plane?)
- // Note that the top-left corner of the window is at (-2, 2)
+
  // in camera coordinates.
  cam=setupView(&e, &g, &up, -3, -2, 2, 4);
 

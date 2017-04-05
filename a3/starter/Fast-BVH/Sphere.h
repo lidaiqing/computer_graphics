@@ -3,43 +3,52 @@
 
 #include <cmath>
 #include "Object.h"
+#include "../RayTracer.h"
+#include "../utils.h"
 
 //! For the purposes of demonstrating the BVH, a simple sphere
 struct Sphere : public Object {
   Vector3 center; // Center of the sphere
   float r, r2; // Radius, Radius^2
   int index;
-  Sphere(const Vector3& center, float radius, int index_=0)
-    : center(center), r(radius), r2(radius*radius), index(index_){ }
+  struct object3D* old_obj;
+  Vector3 vmin, vmax;
+  Sphere(const Vector3& center, float radius, struct object3D* old_obj_, int index_)
+    : center(center), r(radius), r2(radius*radius), old_obj(old_obj_), index(index_){
+      Vector3 len(radius, radius, radius);
+      vmin = Vector3(center - len);
+      vmax = Vector3(center + len);
+    }
 
   bool getIntersection(const Ray& ray, IntersectionInfo* I) const {
-    Vector3 s = center - ray.o;
-    float sd = s * ray.d;
-    float ss = s * s;
-
-    // Compute discriminant
-    float disc = sd*sd - ss + r2;
-
-    // Complex values: No intersection
-    if( disc < 0.f ) return false;
-
-    // Assume we are not in a sphere... The first hit is the lesser valued
+    struct point3D ray_o;
+    ray_o.px = ray.o.x, ray_o.py = ray.o.y, ray_o.pz = ray.o.z, ray_o.pw = 1;
+    struct point3D ray_d;
+    ray_d.px = ray.d.x, ray_d.py = ray.d.y, ray_d.pz = ray.d.z, ray_d.pw = 0;
+    struct ray3D* old_ray = newRay(&ray_o, &ray_d);
+    double lambda;
+    struct point3D p;
+    struct point3D n;
+    double a, b;
+    old_obj->intersect(old_obj, old_ray, &lambda, &p, &n, &a, &b);
+    free(old_ray);
+    if (lambda < 0) return false;
     I->object = this;
-    I->t = sd - sqrt(disc);
-    I->hit = ray.o + (ray.d * I->t);
-
-    Vector3 normal = normalize(I->hit - center);
-    I->u = ((normal.x / 2.0 + 0.5) + 1.0) / 2.0;
-    I->v = ((normal.y / 2.0 + 0.5) + 1.0) / 2.0;
+    I->t = lambda;
+    I->hit = Vector3(p.px, p.py, p.pz);
+    I->u = a;
+    I->v = b;
+    Vector3 normal(n.px, n.py, n.pz);
+    I->normal = normal;
     return true;
   }
 
   Vector3 getNormal(const IntersectionInfo& I) const {
-    return normalize(I.hit - center);
+    return I.normal;
   }
 
   BBox getBBox() const {
-    return BBox(center-Vector3(r,r,r), center+Vector3(r,r,r));
+    return BBox(vmin, vmax);
   }
 
   Vector3 getCentroid() const {

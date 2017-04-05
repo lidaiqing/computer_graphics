@@ -3,15 +3,18 @@
 
 #include <cmath>
 #include "Object.h"
+#include "../RayTracer.h"
+#include "../utils.h"
 #include <algorithm>
 
 struct Plane : public Object {
   Vector3 center; // Center of the Plane
   Vector3 v1, v2, v3, v4; // 3 vertices
   Vector3 vmin, vmax;
+  struct object3D* old_obj;
   int index;
-  Plane(const Vector3& v1_, const Vector3& v2_, const Vector3& v3_, const Vector3& v4_, int index_)
-    : v1(v1_), v2(v2_), v3(v3_), v4(v4_), index(index_) {
+  Plane(const Vector3& v1_, const Vector3& v2_, const Vector3& v3_, const Vector3& v4_, struct object3D* old_obj_, int index_)
+    : v1(v1_), v2(v2_), v3(v3_), v4(v4_), old_obj(old_obj_), index(index_) {
       double x = (v1.x + v2.x + v3.x + v4.x) / 4.0;
       double y = (v1.y + v2.y + v3.y + v4.y) / 4.0;
       double z = (v1.z + v2.z + v3.z + v4.z) / 4.0;
@@ -22,42 +25,30 @@ struct Plane : public Object {
      }
 
   bool getIntersection(const Ray& ray, IntersectionInfo* I) const {
-    //Möller–Trumbore intersection algorithm
-    Vector3 e1 = v2 - v1;
-    Vector3 e2 = v3 - v1;
-    Vector3 P = ray.d ^ e2;
-    double det = e1 * P;
-    const double EPSILON = 0.000001;
-
-    if (det > -EPSILON && det < EPSILON)
-      return false;
-    double inv_det = 1.f / det;
-    Vector3 T = ray.o - v1;
-    double u = T * P * inv_det;
-    if (u < 0.f || u > 1.f) return false;
-
-    Vector3 Q = T ^ e1;
-    double v = ray.d * Q * inv_det;
-    if (v < 0.f || v > 1.f) return false;
-
-    double t = e2 * Q * inv_det;
-    if (t <= EPSILON) return false;
-
+    struct point3D ray_o;
+    ray_o.px = ray.o.x, ray_o.py = ray.o.y, ray_o.pz = ray.o.z, ray_o.pw = 1;
+    struct point3D ray_d;
+    ray_d.px = ray.d.x, ray_d.py = ray.d.y, ray_d.pz = ray.d.z, ray_d.pw = 0;
+    struct ray3D* old_ray = newRay(&ray_o, &ray_d);
+    double lambda;
+    struct point3D p;
+    struct point3D n;
+    double a, b;
+    old_obj->intersect(old_obj, old_ray, &lambda, &p, &n, &a, &b);
+    free(old_ray);
+    if (lambda < 0) return false;
     I->object = this;
-    I->t = t;
-    I->hit = ray.o + ray.d * t;
-
-    // calculate texture mapping
-    Vector3 hitP = I->hit;
-    I->u = std::fabs(hitP * e1) / ::length(e1);
-    I->v = std::fabs(hitP * e2) / ::length(e2);
+    I->t = lambda;
+    I->hit = ray.o + lambda * ray.d;
+    I->u = a;
+    I->v = b;
+    Vector3 normal(n.px, n.py, n.pz);
+    I->normal = normal;
     return true;
   }
 
   Vector3 getNormal(const IntersectionInfo& I) const {
-    Vector3 e1 = v1 - v2;
-    Vector3 e2 = v3 - v1;
-    return normalize(e1 ^ e2);
+    return I.normal;
   }
 
   BBox getBBox() const {
