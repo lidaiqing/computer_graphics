@@ -57,7 +57,7 @@ void buildScene(void)
  struct pointLS *l;
  struct point3D p;
 
-<<<<<<< HEAD
+
  ///////////////////////////////////////
  // TO DO: For Assignment 3 you have to use
  //        the simple scene provided
@@ -620,7 +620,6 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  //findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
  findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
     if(lambda > 0)
->>>>>>> 8e1b6c2dadd98f4cd9396f7751ba2fe42c8e5e92
     {
       rtShade(obj, &p, &n, ray, depth, a, b, col);
     }
@@ -802,35 +801,35 @@ int main(int argc, char *argv[])
  up.py=1;
  up.pz=0;
  up.pw=0;
-
- struct point3D z_direction;
- z_direction.px=0;
- z_direction.py=0;
- z_direction.pz=1;
- z_direction.pw=0;
-
- struct point3D x_direction;
- x_direction.px=1;
- x_direction.py=0;
- x_direction.pz=0;
- x_direction.pw=0;
-
- struct point3D z_direction;
- y_direction.px=0;
- y_direction.py=1;
- y_direction.pz=0;
- y_direction.pw=0;
-
-
- object3D *camera_transform=newPlane(.05,.35,.35,.05,.55,.8,.75,1,1,1);
- Translate(o,-e.px,-e.py,-e.pz);
- double cos=((g.pz)*(g.pz))/((g.pz)*(sqrt(g.px*g.px+g.py*g.py+g.py*g.py)));
- double y_rotation=acos(cos);
-
- dot(&z_direction,&g);
- RotateZ(o,PI);
- RotateX(o,PI/2.0);
- Translate(o,0,-6,0);
+//
+// struct point3D z_direction;
+// z_direction.px=0;
+// z_direction.py=0;
+// z_direction.pz=1;
+// z_direction.pw=0;
+//
+// struct point3D x_direction;
+// x_direction.px=1;
+// x_direction.py=0;
+// x_direction.pz=0;
+// x_direction.pw=0;
+//
+// struct point3D z_direction;
+// y_direction.px=0;
+// y_direction.py=1;
+// y_direction.pz=0;
+// y_direction.pw=0;
+//
+//
+// object3D *camera_transform=newPlane(.05,.35,.35,.05,.55,.8,.75,1,1,1);
+// Translate(o,-e.px,-e.py,-e.pz);
+// double cos=((g.pz)*(g.pz))/((g.pz)*(sqrt(g.px*g.px+g.py*g.py+g.py*g.py)));
+// double y_rotation=acos(cos);
+//
+// dot(&z_direction,&g);
+// RotateZ(o,PI);
+// RotateX(o,PI/2.0);
+// Translate(o,0,-6,0);
  // Set up view with given the above vectors, a 4x4 window,
  // and a focal length of -1 (why? where is the image plane?)
  // Note that the top-left corner of the window is at (-2, 2)

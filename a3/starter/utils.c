@@ -524,7 +524,8 @@ order Positive X, Negative X, Positive Y, Negative Y, Positive Z, Negative Z
   *v = 0.5f * (vc / maxAxis + 1.0f);
 }
 
-void convert_cube_uv_to_xyz(int index, float u, float v, float *x, float *y, float *z);
+void convert_cube_uv_to_xyz(int index, float u, float v, float *x, float *y, float *z)
+{}
 void loadTexture(struct object3D *o, const char *filename)
 {
  // Load a texture image from file and assign it to the
