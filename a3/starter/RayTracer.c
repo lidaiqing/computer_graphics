@@ -150,14 +150,13 @@ insertPLS(l,&light_list);
   vector<uint32_t> faces;
   vector<float> verts;
   read_ply_file(MESH_PATH, verts, faces);
-  Let's add a couple meshes
   int index = 3;
   for (int i = 0; i < faces.size(); i += 3)
   {
      struct object3D *o = newTriangle(.05,.95,.55,.05,1,.25,.25,1,0.6,6);
-     Scale(o,6,1,6);
-     RotateX(o,PI/2.25);
-     Translate(o,0,-3,10);
+     Scale(o,20,20,20);
+     RotateY(o,1.25*PI);
+     Translate(o,0,-3,7);
      invert(&o->T[0][0],&o->Tinv[0][0]);
      insertObject(o, &object_list);
      Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
