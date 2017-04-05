@@ -213,18 +213,20 @@ inline struct ray3D *getRefractionRay(struct ray3D *ray, struct object3D* obj, s
     normalize(&N);
     D.px = ray->d.px, D.py = ray->d.py, D.pz = ray->d.pz, D.pw = 0;
     normalize(&D);
-    double n1 = 1.0, n2 = obj->r_index;
     double D_dot_N = dot(&D, &N);
-    // store first part result in D
     struct point3D NN = N;
     scaleVector(D_dot_N, &NN);
     subVectors(&NN, &D);
-    scaleVector(n1 / n2, &D);
+    double factor = obj->r_index;
+    scaleVector(factor, &D);
     // store t in D
-    double scale = sqrt(1.0 - n1 * n1 * (1 - D_dot_N * D_dot_N) / (n2 * n2));
+    double scale = sqrt(1.0 - (factor * factor * (1.0 - D_dot_N * D_dot_N)));
     scaleVector(scale, &N);
     subVectors(&N, &D);
     D.pw = 0;
+
+
+
     struct ray3D *refractedRay = newRay(p, &D);
     return refractedRay;
 }
@@ -248,7 +250,7 @@ void sphereIntersect(struct object3D *sphere, struct ray3D *r, double *lambda, s
 // You will need to add code for these if you implement texture mapping.
 void loadTexture(struct object3D *o, const char *filename);
 void texMap(struct image *img, double a, double b, double *R, double *G, double *B);
-void convert_xyz_to_cube_uv(float x, float y, float z, int *index, float *u, float *v);
+void convert_xyz_to_cube_uv(double x, double y, double z, int *index, double *u, double *v);
 void convert_cube_uv_to_xyz(int index, float u, float v, float *x, float *y, float *z);
 void read_ply_file(const std::string & filename, std::vector<float>& verts, std::vector<uint32_t>& faces);
 // Functions to insert objects and lights into their respective lists
