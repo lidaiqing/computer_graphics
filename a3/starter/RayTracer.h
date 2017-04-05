@@ -20,12 +20,12 @@
 #define __RayTracer_header
 
 #define PI 3.14159265354
-#define POS_X_PATH "map.ppm"
-#define NEG_X_PATH "map.ppm"
-#define POS_Y_PATH "map.ppm"
-#define NEG_Y_PATH "map.ppm"
-#define POS_Z_PATH "map.ppm"
-#define NEG_Z_PATH "map.ppm"
+#define POS_X_PATH "starright.ppm"
+#define NEG_X_PATH "starleft.ppm"
+#define POS_Y_PATH "starup.ppm"
+#define NEG_Y_PATH "stardown.ppm"
+#define POS_Z_PATH "starfront.ppm"
+#define NEG_Z_PATH "starback.ppm"
 /* The structure below is used to hold a single RGB image */
 struct image{
 	void *rgbdata;
