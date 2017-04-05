@@ -61,7 +61,7 @@ void buildScene(void)
  read_ply_file(MESH_PATH, verts, faces);
  // Let's add a couple meshes
  int index = 0;
- double factor = 10.0;
+ double factor = 20.0;
  for (int i = 0; i < faces.size(); i += 3)
  {
     o = newTriangle(.05,.95,.55,.05,1,.25,.25,1,0.6,6);
@@ -81,6 +81,13 @@ void buildScene(void)
  p.px=0;
  p.py=15.5;
  p.pz=-5.5;
+ p.pw=1;
+ l=newPLS(&p,.95,.95,.95);
+ insertPLS(l,&light_list);
+
+ p.px=0;
+ p.py=20;
+ p.pz=-3;
  p.pw=1;
  l=newPLS(&p,.95,.95,.95);
  insertPLS(l,&light_list);
@@ -575,7 +582,7 @@ int main(int argc, char *argv[])
  // Camera center is at (0,0,-1)
  e.px=0;
  e.py=0;
- e.pz=-10;
+ e.pz=-8;
  e.pw=1;
 
  // To define the gaze vector, we choose a point 'pc' in the scene that
