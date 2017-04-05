@@ -17,7 +17,7 @@
 #define __SVD_dynamic
 
 #define MAX_SVD_ITERATIONS 100
-#define max(A,B) ((A)<(B)?(B):(A))
+#define Max(A,B) ((A)<(B)?(B):(A))
 
 #define signof(A,B)    (((B)>=0)? (fabs(A)) : (-fabs(A)))
 
@@ -34,4 +34,3 @@ int SolveLinearSystem( const float *A, const float *b,
 void InvertMatrix( const float *U, const float *w, const float *V,
 		   const int n, float *I );
 #endif
-

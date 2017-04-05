@@ -55,12 +55,12 @@ struct Vector3 {
 inline Vector3 operator*(float a, const Vector3&b)  { return _mm_mul_ps(_mm_set1_ps(a), b.m128); }
 
 // Component-wise min
-inline Vector3 Min(const Vector3& a, const Vector3& b) {
+inline Vector3 min(const Vector3& a, const Vector3& b) {
   return _mm_min_ps(a.m128, b.m128);
 }
 
 // Component-wise max
-inline Vector3 Max(const Vector3& a, const Vector3& b) {
+inline Vector3 max(const Vector3& a, const Vector3& b) {
   return _mm_max_ps(a.m128, b.m128);
 }
 

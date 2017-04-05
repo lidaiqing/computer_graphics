@@ -26,7 +26,7 @@
 #define NEG_Y_PATH "texture/stardown.ppm"
 #define POS_Z_PATH "texture/starfront.ppm"
 #define NEG_Z_PATH "texture/starback.ppm"
-#define MESH_PATH "model/xyzrgb_dragon.ply"
+#define MESH_PATH "model/bun_zipper.ply"
 /* The structure below is used to hold a single RGB image */
 struct image{
 	void *rgbdata;

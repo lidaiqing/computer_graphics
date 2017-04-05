@@ -26,7 +26,11 @@ struct Sphere : public Object {
     // Assume we are not in a sphere... The first hit is the lesser valued
     I->object = this;
     I->t = sd - sqrt(disc);
-    I->hit = ray.o + I->t * ray.d;
+    I->hit = ray.o + (ray.d * I->t);
+
+    Vector3 normal = normalize(I->hit - center);
+    I->u = ((normal.x / 2.0 + 0.5) + 1.0) / 2.0;
+    I->v = ((normal.y / 2.0 + 0.5) + 1.0) / 2.0;
     return true;
   }
 

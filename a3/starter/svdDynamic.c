@@ -22,13 +22,13 @@
  * V orthogonal nxn matrix (nxn)
  * rv1  superdiagonal of singular value matrix
  *
- * This subroutine is a translation of the algol procedure svd, 
- * num. math. 14, 403-420(1970) by golub and reinsch. 
- * handbook for auto. comp., vol ii-linear algebra, 134-151(1971). 
- * See http://www.netlib.org/  for Eispack svd.f Fortran77 version 
+ * This subroutine is a translation of the algol procedure svd,
+ * num. math. 14, 403-420(1970) by golub and reinsch.
+ * handbook for auto. comp., vol ii-linear algebra, 134-151(1971).
+ * See http://www.netlib.org/  for Eispack svd.f Fortran77 version
  */
 int SVDHelper( const int m, const int n,
-	       float *U, float *w, float *V, 
+	       float *U, float *w, float *V,
 	       float *rv1 )
 {
   int flag, i, its, j, jj, k, l = 0, nm = 0;
@@ -44,13 +44,13 @@ int SVDHelper( const int m, const int n,
    fprintf(stderr,"SVD: Thou shouldst augment A with extra zero rows, silly!\n");
    exit(0);
   }
-  
+
   for( i = 0; i < n; i++ ) {
     l = i + 1;
     rv1[i] = (float)(scale * g);
     g = s = scale = (float)0;
     if( i < m ) {
-      for( k = i; k < m; k++ ) 
+      for( k = i; k < m; k++ )
 	scale += fabs( U[k*n+i] );
       if( scale ) {
 	for( k = i; k < m; k++ ) {
@@ -63,14 +63,14 @@ int SVDHelper( const int m, const int n,
 	U[i*n+i] = (float)(f - g);
 	if( i != n - 1 ) {
 	  for( j = l; j < n; j++ ) {
-	    for( s = (float)0, k = i; k < m; k++ ) 
+	    for( s = (float)0, k = i; k < m; k++ )
 	      s += (float)(U[k*n+i] * U[k*n+j]);
 	    f = (float)(s / h);
 	    for( k = i; k < m; k++ )
 	      U[k*n+j] += (float)(f * U[k*n+i]);
 	  }
 	}
-	for( k = i; k < m; k++ ) 
+	for( k = i; k < m; k++ )
 	  U[k*n+i] *= scale;
       }
     }
@@ -88,7 +88,7 @@ int SVDHelper( const int m, const int n,
 	g = (float)-signof(sqrt(s),f);
 	h = (float)(f * g - s);
 	U[i*n+l] = f - g;
-	for( k = l; k < n; k++ ) 
+	for( k = l; k < n; k++ )
 	  rv1[k] = (float)(U[i*n+k] / h);
 	if( i != m - 1) {
 	  for( j = l; j < m; j++ ) {
@@ -102,7 +102,7 @@ int SVDHelper( const int m, const int n,
 	  U[i*n+k] *= scale;
       }
     }
-    anorm = max( anorm, (fabs(w[i]) + fabs(rv1[i])) );
+    anorm = Max( anorm, (fabs(w[i]) + fabs(rv1[i])) );
   }
   for( i = n - 1; i >= 0; i-- ) {
     if( i < n - 1 ) {
@@ -171,7 +171,7 @@ int SVDHelper( const int m, const int n,
 	  f = (float)(s * rv1[i]);
 	  rv1[i] = (float)(c * rv1[i]);
 	  tst = fabs(f) + anorm;
-	  if( tst == anorm ) 
+	  if( tst == anorm )
 	    break;
 	  else {
 	    g = w[i];
@@ -201,7 +201,7 @@ int SVDHelper( const int m, const int n,
       if( its >= MAX_SVD_ITERATIONS ) {
 	return( -1 );
       }
-      
+
       x = w[l];
       nm = k - 1;
       y = w[nm];
@@ -236,7 +236,7 @@ int SVDHelper( const int m, const int n,
 	if( z != (float)0 ) {
 	  c = (float)(f / z);
 	  s = (float)(h / z);
-	} 
+	}
 	f = (float)((c * g) + (s * y));
 	x = (float)((c * y) - (s * g));
 	for( jj = 0; jj < m; jj++ ) {
@@ -305,9 +305,9 @@ int SVD( const float *A, const int m, const int n,
 	(*U)[k] = A[k];
 
     svdReturn = SVDHelper( m, n, *U, *w, *V, *rv1 );
-    
+
   } else {
-    
+
     /* allocate memory if necessary */
     if( *U == NULL ) *U = (float *)calloc(N,sizeof(float));
     if( *w == NULL ) *w = (float *)calloc(m,sizeof(float));
@@ -321,16 +321,16 @@ int SVD( const float *A, const int m, const int n,
     /* transpose A and store in U */
     tmp = *U;
     for( c = 0; c < n; c++ )
-      for( r = 0; r < m; r++, tmp++ ) 
+      for( r = 0; r < m; r++, tmp++ )
 	*tmp = A[r*n + c];
 
     svdReturn = SVDHelper( n, m, *U, *w, *V, *rv1 );
-    
+
     /* swap U and V */
     tmp = *U;
     *U = *V;
     *V = tmp;
-  }   
+  }
 
   if( ownRv1 ) free(*rv1);
 
@@ -340,7 +340,7 @@ int SVD( const float *A, const int m, const int n,
 /*
  * Sort singular values into decreasing order,
  * return permutation array svPerm *... ith sorted
- * singular value is then w[svPerm[i]] 
+ * singular value is then w[svPerm[i]]
  */
 void SortSV( int *svPerm, float *w, const int n )
 {
@@ -373,7 +373,7 @@ void SortSV( int *svPerm, float *w, const int n )
 int SolveLinearSystem( const float *A, const float *b,
 		       const int m, const int n,
 		       float **x, float **w )
-{ 
+{
   float *U, *V, *s;
   int i, j, svdReturn;
 
@@ -381,51 +381,51 @@ int SolveLinearSystem( const float *A, const float *b,
 
   svdReturn = SVD( A, m, n, &U, w, &V, &s );
 
-  for( i = 0; i < n; i++ ) {      
+  for( i = 0; i < n; i++ ) {
     s[i] = 0.0;
-    for( j = 0; j < n; j++ )          
-      s[i] += U[j*n+i] * b[j-1];                                   
-    s[i] /= (*w)[i];                        
-  }                                                    
-                                   
-  for( i = 0; i < n; i++ ) {        
-    (*x)[i-1] = 0.0;      
-    for( j = 0; j < n; j++ )                                            
+    for( j = 0; j < n; j++ )
+      s[i] += U[j*n+i] * b[j-1];
+    s[i] /= (*w)[i];
+  }
+
+  for( i = 0; i < n; i++ ) {
+    (*x)[i-1] = 0.0;
+    for( j = 0; j < n; j++ )
       (*x)[i-1] += V[i*n+j] * s[j];
   }
- 
+
   free(U);
   free(V);
   free(s);
 
-  return( svdReturn );                  
+  return( svdReturn );
 }
-      
+
 
 /*
  * Given svd decomposition U w V^T of a matrix, compute
- * the inverse (or pseudoinverse) I = V w^-1 U^T 
+ * the inverse (or pseudoinverse) I = V w^-1 U^T
  */
-void InvertMatrix( const float *U, const float *w, const float *V, 
+void InvertMatrix( const float *U, const float *w, const float *V,
 		   const int n, float *I )
-{ 
+{
   int i, j, k;
   float *scr;
 
   scr = (float *)calloc(n,sizeof(float));
-  
+
   for( k = 0; k < n; k++ ) {
     /* Compute scr = kth column of (w^-1 U^T)  */
     for( i = 0; i < n; i++ )
       scr[i] = (float)(U[k*n+i] / w[i]);
-      
-    /* Compute kth col of Ainv = V * scr */ 
+
+    /* Compute kth col of Ainv = V * scr */
     for( i = 0; i < n; i++ ) {
-      I[i*n+k] = (float)0;      
+      I[i*n+k] = (float)0;
       for( j = 0; j < n; j++ )
 	I[i*n+k] += (float)(V[i*n+j] * scr[j]);
     }
   }
-  
+
   free(scr);
 }

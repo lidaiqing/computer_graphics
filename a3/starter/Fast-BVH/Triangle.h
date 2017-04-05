@@ -17,15 +17,8 @@ struct Triangle : public Object {
       float z = (v1.z + v2.z + v3.z) / 3.0;
       center = Vector3(x, y, z);
 
-      /*float min_x = std::min(v1.x, std::min(v2.x, v3.x));
-      float min_y = std::min(v1.y, std::min(v2.y, v3.y));
-      float min_z = std::min(v1.z, std::min(v2.z, v3.z));
-      float max_x = std::max(v1.x, std::max(v2.x, v3.x));
-      float max_y = std::max(v1.y, std::max(v2.y, v3.y));
-      float max_z = std::max(v1.z, std::max(v2.z, v3.z));
-      */
-      vmin = Min(v1, Min(v2, v3));
-      vmax = Max(v1, Max(v2, v3));
+      vmin = ::min(v1, ::min(v2, v3));
+      vmax = ::max(v1, ::max(v2, v3));
      }
 
   bool getIntersection(const Ray& ray, IntersectionInfo* I) const {
@@ -53,6 +46,14 @@ struct Triangle : public Object {
     I->object = this;
     I->t = t;
     I->hit = ray.o + ray.d * t;
+
+    // calculate texture mapping
+    Vector3 hitP = I->hit;
+    double BaryV1 = ((v2.y - v3.y) * (hitP.x - v3.x) + (v3.x - v2.x) * (hitP.y - v3.y)) / ((v2.y - v3.y) * (v1.x - v3.x) + (v3.x - v2.x) * (v1.y - v3.y));
+    double BaryV2 = ((v3.y - v1.y) * (hitP.x - v3.x) + (v1.x - v3.x) * (hitP.y - v3.y)) / ((v2.y - v3.y) * (v1.x - v3.x) + (v3.x - v2.x) * (v1.y - v3.y));
+    double BaryV3 = 1.0 - BaryV1 - BaryV2;
+    I->u = BaryV3 * 1;
+    I->v = BaryV2 * 1 + BaryV3 * 1;  
     return true;
   }
 

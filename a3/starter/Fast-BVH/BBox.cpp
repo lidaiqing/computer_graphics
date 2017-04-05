@@ -8,14 +8,14 @@ BBox::BBox(const Vector3& p)
   : min(p), max(p) { extent = max - min; }
 
   void BBox::expandToInclude(const Vector3& p) {
-    min = ::Min(min, p);
-    max = ::Max(max, p);
+    min = ::min(min, p);
+    max = ::max(max, p);
     extent = max - min;
   }
 
 void BBox::expandToInclude(const BBox& b) {
-  min = ::Min(min, b.min);
-  max = ::Max(max, b.max);
+  min = ::min(min, b.min);
+  max = ::max(max, b.max);
   extent = max - min;
 }
 
