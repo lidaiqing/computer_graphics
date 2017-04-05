@@ -20,12 +20,12 @@
 #define __RayTracer_header
 
 #define PI 3.14159265354
-#define POS_X_PATH "starright.ppm"
-#define NEG_X_PATH "starleft.ppm"
-#define POS_Y_PATH "starup.ppm"
-#define NEG_Y_PATH "stardown.ppm"
-#define POS_Z_PATH "starfront.ppm"
-#define NEG_Z_PATH "starback.ppm"
+#define POS_X_PATH "texture/starright.ppm"
+#define NEG_X_PATH "texture/starleft.ppm"
+#define POS_Y_PATH "texture/starup.ppm"
+#define NEG_Y_PATH "texture/stardown.ppm"
+#define POS_Z_PATH "texture/starfront.ppm"
+#define NEG_Z_PATH "texture/starback.ppm"
 #define MESH_PATH "model/dragon.ply"
 /* The structure below is used to hold a single RGB image */
 struct image{
