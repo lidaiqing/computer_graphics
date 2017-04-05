@@ -239,7 +239,7 @@ void buildScene(void)
         //findFirstHit(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
         free(test_ray);
 
-        if (lambda < 0) {
+        if (lambda > 0) {
           // do not add contribute to color
         } else {
 	          struct pointLS *sample_light=(struct pointLS *)malloc(sizeof(struct pointLS));
@@ -443,6 +443,11 @@ void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct 
     *lambda = -1;
     *obj = NULL;
   } else {
+    if (index_to_obj[I.object->getIndex()] == Os) {
+      *lambda = -1;
+      *obj = NULL;
+      return;
+    }
     if (occlusion) {
       *lambda = 1;
       return;

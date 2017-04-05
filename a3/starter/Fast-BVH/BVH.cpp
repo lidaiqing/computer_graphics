@@ -52,6 +52,7 @@ bool BVH::getIntersection(const Ray& ray, IntersectionInfo* intersection, bool o
         if (hit) {
           // If we're only looking for occlusion, then any hit is good enough
           if(occlusion) {
+            *intersection = current;
             return true;
           }
 
@@ -238,7 +239,6 @@ void BVH::build()
 
   // Copy the temp node data to a flat array
   flatTree = new BVHFlatNode[nNodes];
-  for(uint32_t n=0; n<nNodes; ++n) 
+  for(uint32_t n=0; n<nNodes; ++n)
     flatTree[n] = buildnodes[n];
 }
-
