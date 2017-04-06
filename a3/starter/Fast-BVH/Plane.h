@@ -39,7 +39,8 @@ struct Plane : public Object {
     if (lambda < 0) return false;
     I->object = this;
     I->t = lambda;
-    I->hit = ray.o + lambda * ray.d;
+    Vector3 hitP(p.px, p.py, p.pz);
+    I->hit = hitP;
     I->u = a;
     I->v = b;
     Vector3 normal(n.px, n.py, n.pz);

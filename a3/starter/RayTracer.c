@@ -103,6 +103,7 @@ Translate(o,0,-3,10);
 invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
            // and store the inverse
            // transform for this object!
+o->texImg = readPPMimage(FLOOR_PATH);
 insertObject(o,&object_list);			// Insert into object list
 Vector3 v1(-1,-1,0);
 Vector3 v2(-1, 1,0);
@@ -117,28 +118,28 @@ objects.push_back(new Plane(v1,v2,v3,v4,o,0));
 index_to_obj[0] = o;
 
 // Let's add a couple spheres
-o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,6);
-Scale(o,.75,.5,1.5);
-RotateY(o,PI/2);
-Translate(o,-1.45,1.1,3.5);
-invert(&o->T[0][0],&o->Tinv[0][0]);
-insertObject(o,&object_list);
-
-Vector3 center(0,0,0);
-transformVert(center, o);
-objects.push_back(new Sphere(center,3,o,1));
-index_to_obj[1] = o;
-
-o=newSphere(.05,.95,.95,.05,.75,.95,.55,1,1,6);
-Scale(o,.5,2.0,1.0);
-RotateZ(o,PI/1.5);
-Translate(o,1.75,1.25,5.0);
-invert(&o->T[0][0],&o->Tinv[0][0]);
-insertObject(o,&object_list);
-
-transformVert(center, o);
-objects.push_back(new Sphere(center,3,o,2));
-index_to_obj[2] = o;
+// o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,6);
+// Scale(o,.75,.5,1.5);
+// RotateY(o,PI/2);
+// Translate(o,-1.45,1.1,3.5);
+// invert(&o->T[0][0],&o->Tinv[0][0]);
+// insertObject(o,&object_list);
+//
+// Vector3 center(0,0,0);
+// transformVert(center, o);
+// objects.push_back(new Sphere(center,3,o,1));
+// index_to_obj[1] = o;
+//
+// o=newSphere(.05,.95,.95,.05,.75,.95,.55,1,1,6);
+// Scale(o,.5,2.0,1.0);
+// RotateZ(o,PI/1.5);
+// Translate(o,1.75,1.25,5.0);
+// invert(&o->T[0][0],&o->Tinv[0][0]);
+// insertObject(o,&object_list);
+//
+// transformVert(center, o);
+// objects.push_back(new Sphere(center,3,o,2));
+// index_to_obj[2] = o;
 // Insert a single point light source.
 p.px=0;
 p.py=15.5;
@@ -150,13 +151,14 @@ insertPLS(l,&light_list);
   vector<uint32_t> faces;
   vector<float> verts;
   read_ply_file(MESH_PATH, verts, faces);
-  int index = 3;
+  int index = 1;
   for (int i = 0; i < faces.size(); i += 3)
   {
-     struct object3D *o = newTriangle(.05,.95,.55,.05,1,.25,.25,1,0.6,6);
-     Scale(o,20,20,20);
-     RotateY(o,1.25*PI);
-     Translate(o,0,-3,7);
+     struct object3D *o = newTriangle(.05,.85,.55,.45,0,0,0,1,1,6);
+     Scale(o,0.05,0.05,0.05);
+     RotateZ(o,-0.05*PI);
+     RotateY(o,0.3*PI);
+     Translate(o,0,-1.5,8);
      invert(&o->T[0][0],&o->Tinv[0][0]);
      insertObject(o, &object_list);
      Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
@@ -344,9 +346,9 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
 
  if (obj!= NULL && obj->texImg == NULL)		// Not textured, use object colour
  {
-   R=obj->col.R;
-   G=obj->col.G;
-   B=obj->col.B;
+   R = obj->col.R;
+   G = obj->col.G;
+   B = obj->col.B;
    //std::cout<<"gotcha"<<std::endl;
  }
  else if (obj != NULL && obj->texImg != NULL)
@@ -372,6 +374,22 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  struct pointLS* lightPtr = light_list;
  while (lightPtr) {
     areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 4);
+    // Vector3 Lo(lightPtr->p0.px, lightPtr->p0.py, lightPtr->p0.pz);
+    // Vector3 P(p->px, p->py, p->pz);
+    // Vector3 D = Lo - P;
+    // struct point3D ray_d;
+    // ray_d.px = D.x, ray_d.py = D.y, ray_d.pz = D.z, ray_d.pw = 0;
+    // struct ray3D* testRay = newRay(p, &ray_d);
+    // double lambda, dummy_value;
+    // struct point3D dummy_point;
+    // struct object3D* dummy_obj;
+    //
+    // findFirstHit_BVH(testRay, true, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+    // free(testRay);
+    // if (lambda > 0) {}
+    // else {
+    //   phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
+    // }
     lightPtr = lightPtr->next;
  }
      // reflection ray
@@ -385,20 +403,19 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     reflectedCol.G *= obj->alb.rg;
     reflectedCol.B *= obj->alb.rg;
 
-    col->R += (tmp_col.R + reflectedCol.R);
-    col->G += (tmp_col.G + reflectedCol.G);
-    col->B += (tmp_col.B + reflectedCol.B);
     // refraction ray
-   /*struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
+   struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
    struct colourRGB refractedCol;
    refractedCol.R = refractedCol.G = refractedCol.B = 0;
    if (obj->alpha < 1) rayTrace(refractedRay, depth + 1, &refractedCol, obj);
 
-   free(refractedRay);*/
-   //refractedCol.R *= obj->r_index;
-   //refractedCol.G *= obj->r_index;
-   //refractedCol.B *= obj->r_index;
-
+   free(refractedRay);
+   refractedCol.R *= obj->r_index;
+   refractedCol.G *= obj->r_index;
+   refractedCol.B *= obj->r_index;
+   col->R += (tmp_col.R + reflectedCol.R + refractedCol.R);
+   col->G += (tmp_col.G + reflectedCol.G + refractedCol.G);
+   col->B += (tmp_col.B + reflectedCol.B + refractedCol.B);
 
  return;
 
@@ -440,9 +457,9 @@ void isBlock(struct ray3D *ray, double *lambda, struct object3D *Os, struct obje
 void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b)
 {
   //wrap BVH method
-  Vector3 ray_o(ray->p0.px, ray->p0.py, ray->p0.pz);
-  Vector3 ray_d(ray->d.px, ray->d.py, ray->d.pz);
-  ray_d = normalize(ray_d);
+  Vector3 ray_o((float)ray->p0.px, (float)ray->p0.py, (float)ray->p0.pz);
+  Vector3 ray_d((float)ray->d.px, (float)ray->d.py, (float)ray->d.pz);
+  //ray_d = normalize(ray_d);
   Ray rayBVH(ray_o, ray_d);
   //std::cout<< "x: " << rayBVH.d.x << " y: " << rayBVH.d.y << " z:" << rayBVH.d.z << std::endl;
   IntersectionInfo I;
@@ -458,14 +475,15 @@ void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct 
     }
     if (occlusion) {
       *lambda = 1;
+      *obj = NULL;
       return;
     }
     *lambda = I.t;
     const Vector3 normal = I.object->getNormal(I);
-    n->px = normal.x, n->py = normal.y, n->pz = normal.z, n->pw = 0;
-    p->px = I.hit.x, p->py = I.hit.y, p->pz = I.hit.z, p->pw = 1.0;
-    *a = I.u;
-    *b = I.v;
+    n->px = (double)normal.x, n->py = (double)normal.y, n->pz = (double)normal.z, n->pw = 0;
+    p->px = (double)I.hit.x, p->py = (double)I.hit.y, p->pz = (double)I.hit.z, p->pw = 1.0;
+    *a = (double)I.u;
+    *b = (double)I.v;
     *obj = index_to_obj[I.object->getIndex()];
   }
 }
@@ -564,7 +582,6 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
         col->R = R, col->G = G, col->B = B;
         return;
       } else {
-        // if hit ground, return
         double R, G, B;
         int index;
         convert_xyz_to_cube_uv(ray->p0.px + factor * ray->d.px, ray->p0.py + factor * ray->d.py, ray->p0.pz + factor * ray->d.pz, &index, &a, &b);
