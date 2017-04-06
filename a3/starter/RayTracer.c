@@ -91,7 +91,7 @@ void buildScene(void)
 
 
 
- o=newPlane(.05,.75,.75,.05,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
+ o=newPlane(.05,.75,.75,.55,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
            // should see some reflections if all is done properly.
            // Colour is close to cyan, and currently the plane is
            // completely opaque (alpha=1). The refraction index is
@@ -118,11 +118,12 @@ objects.push_back(new Plane(v1,v2,v3,v4,o,0));
 index_to_obj[0] = o;
 
 // Let's add a couple spheres
- o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,6);
+ o=newSphere(.05,.95,.35,.25,1,.25,.25,0.6,0.8,6);
  Scale(o,1,1,1);
  RotateY(o,PI/2);
  Translate(o,-1.45,1.1,3.5);
  invert(&o->T[0][0],&o->Tinv[0][0]);
+ o->texImg = readPPMimage(FLOOR_PATH);
  insertObject(o,&object_list);
  Vector3 center(0,0,0);
  transformVert(center, o);
@@ -383,7 +384,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
      struct point3D dummy_point;
      struct object3D* dummy_obj;
 
-     findFirstHit_BVH(testRay, true, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+     findFirstHit(testRay, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
      free(testRay);
      if (lambda > 0) {}
      else {
@@ -403,18 +404,18 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     reflectedCol.B *= obj->alb.rg;
 
     // refraction ray
-//   struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
-//   struct colourRGB refractedCol;
-//   refractedCol.R = refractedCol.G = refractedCol.B = 0;
-//   if (obj->alpha < 1) rayTrace(refractedRay, depth + 1, &refractedCol, obj);
-//
-//   free(refractedRay);
-//   refractedCol.R *= obj->r_index;
-//   refractedCol.G *= obj->r_index;
-//   refractedCol.B *= obj->r_index;
-   col->R += (tmp_col.R + reflectedCol.R);// + refractedCol.R);
-   col->G += (tmp_col.G + reflectedCol.G);// + refractedCol.G);
-   col->B += (tmp_col.B + reflectedCol.B);// + refractedCol.B);
+   struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
+   struct colourRGB refractedCol;
+   refractedCol.R = refractedCol.G = refractedCol.B = 0;
+   if (obj->alpha < 1) rayTrace(refractedRay, depth + 1, &refractedCol, obj);
+
+   free(refractedRay);
+   refractedCol.R *= obj->alb.rg;
+   refractedCol.G *= obj->alb.rg;
+   refractedCol.B *= obj->alb.rg;
+   col->R += (tmp_col.R + reflectedCol.R + refractedCol.R);
+   col->G += (tmp_col.G + reflectedCol.G + refractedCol.G);
+   col->B += (tmp_col.B + reflectedCol.B + refractedCol.B);
 
  return;
 
@@ -462,10 +463,11 @@ void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct 
   Ray rayBVH(ray_o, ray_d);
   //std::cout<< "x: " << rayBVH.d.x << " y: " << rayBVH.d.y << " z:" << rayBVH.d.z << std::endl;
   IntersectionInfo I;
+  *lambda = -1;
+  *obj = NULL;
   bool hit = bvh->getIntersection(rayBVH, &I, occlusion);
   if (!hit) {
-    *lambda = -1;
-    *obj = NULL;
+    return;
   } else {
     if (index_to_obj[I.object->getIndex()] == Os) {
       *lambda = -1;
