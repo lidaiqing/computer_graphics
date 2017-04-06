@@ -15,9 +15,8 @@ struct Sphere : public Object {
   Vector3 vmin, vmax;
   Sphere(const Vector3& center, float radius, struct object3D* old_obj_, int index_)
     : center(center), r(radius), r2(radius*radius), old_obj(old_obj_), index(index_){
-      Vector3 len(radius, radius, radius);
-      vmin = Vector3(center - len);
-      vmax = Vector3(center + len);
+      vmin = center - Vector3(r,r,r);
+      vmax = center + Vector3(r,r,r);
     }
 
   bool getIntersection(const Ray& ray, IntersectionInfo* I) const {
@@ -35,10 +34,10 @@ struct Sphere : public Object {
     if (lambda < 0) return false;
     I->object = this;
     I->t = lambda;
-    I->hit = Vector3(p.px, p.py, p.pz);
+    I->hit = Vector3((float)p.px, (float)p.py, (float)p.pz);
     I->u = a;
     I->v = b;
-    Vector3 normal(n.px, n.py, n.pz);
+    Vector3 normal((float)n.px, (float)n.py, (float)n.pz);
     I->normal = normal;
     return true;
   }

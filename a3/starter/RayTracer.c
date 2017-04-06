@@ -91,7 +91,7 @@ void buildScene(void)
 
 
 
- o=newPlane(.05,.75,.75,.55,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
+ o=newPlane(.05,.75,.75,.05,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
            // should see some reflections if all is done properly.
            // Colour is close to cyan, and currently the plane is
            // completely opaque (alpha=1). The refraction index is
@@ -118,17 +118,16 @@ objects.push_back(new Plane(v1,v2,v3,v4,o,0));
 index_to_obj[0] = o;
 
 // Let's add a couple spheres
-// o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,6);
-// Scale(o,.75,.5,1.5);
-// RotateY(o,PI/2);
-// Translate(o,-1.45,1.1,3.5);
-// invert(&o->T[0][0],&o->Tinv[0][0]);
-// insertObject(o,&object_list);
-//
-// Vector3 center(0,0,0);
-// transformVert(center, o);
-// objects.push_back(new Sphere(center,3,o,1));
-// index_to_obj[1] = o;
+ o=newSphere(.05,.95,.35,.35,1,.25,.25,1,1,6);
+ Scale(o,1,1,1);
+ RotateY(o,PI/2);
+ Translate(o,-1.45,1.1,3.5);
+ invert(&o->T[0][0],&o->Tinv[0][0]);
+ insertObject(o,&object_list);
+ Vector3 center(0,0,0);
+ transformVert(center, o);
+ objects.push_back(new Sphere(center,1,o,1));
+ index_to_obj[1] = o;
 //
 // o=newSphere(.05,.95,.95,.05,.75,.95,.55,1,1,6);
 // Scale(o,.5,2.0,1.0);
@@ -148,30 +147,30 @@ p.pw=1;
 l=newPLS(&p,.65,.65,.65);
 insertPLS(l,&light_list);
 
-  vector<uint32_t> faces;
-  vector<float> verts;
-  read_ply_file(MESH_PATH, verts, faces);
-  int index = 1;
-  for (int i = 0; i < faces.size(); i += 3)
-  {
-     struct object3D *o = newTriangle(.05,.85,.55,.45,0,0,0,1,1,6);
-     Scale(o,0.05,0.05,0.05);
-     RotateZ(o,-0.05*PI);
-     RotateY(o,0.3*PI);
-     Translate(o,0,-1.5,8);
-     invert(&o->T[0][0],&o->Tinv[0][0]);
-     insertObject(o, &object_list);
-     Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
-     Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
-     Vector3 v3(verts[faces[i+2]*3], verts[faces[i+2]*3+1], verts[faces[i+2]*3+2]);
-
-     transformVert(v1, o);
-     transformVert(v2, o);
-     transformVert(v3, o);
-     objects.push_back(new Triangle(v1, v2, v3, index));
-     index_to_obj[index] = o;
-     index++;
-  }
+//  vector<uint32_t> faces;
+//  vector<float> verts;
+//  read_ply_file(MESH_PATH, verts, faces);
+//  int index = 2;
+//  for (int i = 0; i < faces.size(); i += 3)
+//  {
+//     struct object3D *o = newTriangle(.05,.85,.55,.45,0,0,0,1,1,6);
+//     Scale(o,0.05,0.05,0.05);
+//     RotateZ(o,-0.05*PI);
+//     RotateY(o,0.3*PI);
+//     Translate(o,0,-1.5,8);
+//     invert(&o->T[0][0],&o->Tinv[0][0]);
+//     insertObject(o, &object_list);
+//     Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
+//     Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
+//     Vector3 v3(verts[faces[i+2]*3], verts[faces[i+2]*3+1], verts[faces[i+2]*3+2]);
+//
+//     transformVert(v1, o);
+//     transformVert(v2, o);
+//     transformVert(v3, o);
+//     objects.push_back(new Triangle(v1, v2, v3, index));
+//     index_to_obj[index] = o;
+//     index++;
+//  }
 
  bvh = new BVH(&objects);
 
@@ -373,23 +372,23 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // Loop through each light source
  struct pointLS* lightPtr = light_list;
  while (lightPtr) {
-    areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 4);
-    // Vector3 Lo(lightPtr->p0.px, lightPtr->p0.py, lightPtr->p0.pz);
-    // Vector3 P(p->px, p->py, p->pz);
-    // Vector3 D = Lo - P;
-    // struct point3D ray_d;
-    // ray_d.px = D.x, ray_d.py = D.y, ray_d.pz = D.z, ray_d.pw = 0;
-    // struct ray3D* testRay = newRay(p, &ray_d);
-    // double lambda, dummy_value;
-    // struct point3D dummy_point;
-    // struct object3D* dummy_obj;
-    //
-    // findFirstHit_BVH(testRay, true, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
-    // free(testRay);
-    // if (lambda > 0) {}
-    // else {
-    //   phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
-    // }
+    //areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 4);
+     Vector3 Lo(lightPtr->p0.px, lightPtr->p0.py, lightPtr->p0.pz);
+     Vector3 P(p->px, p->py, p->pz);
+     Vector3 D = Lo - P;
+     struct point3D ray_d;
+     ray_d.px = D.x, ray_d.py = D.y, ray_d.pz = D.z, ray_d.pw = 0;
+     struct ray3D* testRay = newRay(p, &ray_d);
+     double lambda, dummy_value;
+     struct point3D dummy_point;
+     struct object3D* dummy_obj;
+
+     findFirstHit_BVH(testRay, true, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+     free(testRay);
+     if (lambda > 0) {}
+     else {
+       phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
+     }
     lightPtr = lightPtr->next;
  }
      // reflection ray
@@ -404,18 +403,18 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
     reflectedCol.B *= obj->alb.rg;
 
     // refraction ray
-   struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
-   struct colourRGB refractedCol;
-   refractedCol.R = refractedCol.G = refractedCol.B = 0;
-   if (obj->alpha < 1) rayTrace(refractedRay, depth + 1, &refractedCol, obj);
-
-   free(refractedRay);
-   refractedCol.R *= obj->r_index;
-   refractedCol.G *= obj->r_index;
-   refractedCol.B *= obj->r_index;
-   col->R += (tmp_col.R + reflectedCol.R + refractedCol.R);
-   col->G += (tmp_col.G + reflectedCol.G + refractedCol.G);
-   col->B += (tmp_col.B + reflectedCol.B + refractedCol.B);
+//   struct ray3D* refractedRay = getRefractionRay(ray, obj, p, n);
+//   struct colourRGB refractedCol;
+//   refractedCol.R = refractedCol.G = refractedCol.B = 0;
+//   if (obj->alpha < 1) rayTrace(refractedRay, depth + 1, &refractedCol, obj);
+//
+//   free(refractedRay);
+//   refractedCol.R *= obj->r_index;
+//   refractedCol.G *= obj->r_index;
+//   refractedCol.B *= obj->r_index;
+   col->R += (tmp_col.R + reflectedCol.R);// + refractedCol.R);
+   col->G += (tmp_col.G + reflectedCol.G);// + refractedCol.G);
+   col->B += (tmp_col.B + reflectedCol.B);// + refractedCol.B);
 
  return;
 
@@ -480,7 +479,7 @@ void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct 
     }
     *lambda = I.t;
     const Vector3 normal = I.object->getNormal(I);
-    n->px = (double)normal.x, n->py = (double)normal.y, n->pz = (double)normal.z, n->pw = 0;
+    n->px = (double)normal.x, n->py = (double)normal.y, n->pz = (double)normal.z, n->pw = 0.0;
     p->px = (double)I.hit.x, p->py = (double)I.hit.y, p->pz = (double)I.hit.z, p->pw = 1.0;
     *a = (double)I.u;
     *b = (double)I.v;
@@ -557,7 +556,6 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  struct object3D *obj;	// Pointer to object at intersection
  struct point3D p;	// Intersection point
  struct point3D n;	// Normal at intersection
- struct colourRGB I;	// Colour returned by shading function
 
  ///////////////////////////////////////////////////////
  // TO DO: Complete this function. Refer to the notes
@@ -566,14 +564,14 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
  /* obj is null because it is the first recursion so not from any object */
  /* By the end of this function call, obj will point to the object this ray firstly intersects */
  //findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
- findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
+    findFirstHit_BVH(ray, false, &lambda, Os, &obj, &p, &n, &a, &b);
     if(lambda > 0)
     {
       rtShade(obj, &p, &n, ray, depth, a, b, col);
     }
     else
     {
-      double factor = 2;
+      double factor = 1.5;
       if (depth == 1) {
         double R, G, B;
         int index;

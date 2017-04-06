@@ -25,27 +25,30 @@ struct Triangle : public Object {
     //Möller–Trumbore intersection algorithm
     Vector3 e1 = v2 - v1;
     Vector3 e2 = v3 - v1;
-    Vector3 P = ray.d ^ e2;
+    Vector3 D = normalize(ray.d);
+    Vector3 P = D ^ e2;
     float det = e1 * P;
+    float ray_d_len = length(ray.d);
     const float EPSILON = 0.000001;
 
     if (det > -EPSILON && det < EPSILON)
       return false;
     float inv_det = 1.f / det;
     Vector3 T = ray.o - v1;
-    float u = T * P * inv_det;
+    float u = (T * P) * inv_det;
     if (u < 0.f || u > 1.f) return false;
 
     Vector3 Q = T ^ e1;
-    float v = ray.d * Q * inv_det;
+    float v = D * Q * inv_det;
     if (v < 0.f || u + v > 1.f) return false;
 
     float t = e2 * Q * inv_det;
     if (t <= EPSILON) return false;
 
     I->object = this;
-    I->t = t;
-    I->hit = ray.o + ray.d * t;
+    // t is for original length
+    I->t = t / ray_d_len;
+    I->hit = ray.o + D * t;
 
     // calculate texture mapping
     Vector3 hitP = I->hit;
