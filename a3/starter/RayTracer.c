@@ -465,7 +465,7 @@ void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct 
   IntersectionInfo I;
   *lambda = -1;
   *obj = NULL;
-  bool hit = bvh->getIntersection(rayBVH, &I, occlusion);
+  bool hit = bvh->getIntersection(rayBVH, &I, Os, occlusion);
   if (!hit) {
     return;
   } else {
