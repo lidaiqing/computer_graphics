@@ -317,10 +317,6 @@ void planeIntersect(struct object3D *plane, struct ray3D *ray, double *lambda, s
     /* Find normalized coordination on the plane */
     *a=transformed_x/2.0;
     *b=transformed_y/2.0;
-    if(*b>1)
-    {
-    std::cout<<" check: "<<model_intersection_x<<std::endl;
-    }
     }
 
 

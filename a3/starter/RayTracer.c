@@ -29,11 +29,13 @@ using std::vector;
 struct object3D *object_list;
 struct pointLS *light_list;
 struct image *env_list[5];
-
+struct image *skin;
 
 std::unordered_map<int, object3D*> index_to_obj;
+std::unordered_map<object3D*, int> obj_to_index;
 BVH *bvh;
 vector<Object*> objects;
+
 int MAX_DEPTH;
 
 void transformVert(Vector3& v, struct object3D* obj)
@@ -43,6 +45,7 @@ void transformVert(Vector3& v, struct object3D* obj)
   matVecMult(obj->T, &V);
   v.x = V.px, v.y = V.py, v.z = V.pz;
 }
+
 void buildScene(void)
 {
  // Sets up all objects in the scene. This involves creating each object,
@@ -89,17 +92,17 @@ void buildScene(void)
  env_list[4]=readPPMimage(POS_Z_PATH);
  env_list[5]=readPPMimage(NEG_Z_PATH);
 
-
+ //skin = readPPMimage(SKIN_PATH);
 
  o=newPlane(.05,.75,.75,.55,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
            // should see some reflections if all is done properly.
            // Colour is close to cyan, and currently the plane is
            // completely opaque (alpha=1). The refraction index is
            // meaningless since alpha=1
-Scale(o,6,6,1);				// Do a few transforms...
-RotateZ(o,PI/1.20);
+Scale(o,17,6,1);				// Do a few transforms...
+RotateZ(o,-1.2*PI);
 RotateX(o,PI/2.25);
-Translate(o,0,-3,10);
+Translate(o,0,-6,10);
 invert(&o->T[0][0],&o->Tinv[0][0]);		// Very important! compute
            // and store the inverse
            // transform for this object!
@@ -116,19 +119,22 @@ transformVert(v3,o);
 transformVert(v4,o);
 objects.push_back(new Plane(v1,v2,v3,v4,o,0));
 index_to_obj[0] = o;
+obj_to_index[o] = 0;
 
 // Let's add a couple spheres
- o=newSphere(.05,.95,.35,.25,1,.25,.25,0.6,0.8,6);
- Scale(o,1,1,1);
- RotateY(o,PI/2);
- Translate(o,-1.45,1.1,3.5);
- invert(&o->T[0][0],&o->Tinv[0][0]);
- o->texImg = readPPMimage(FLOOR_PATH);
- insertObject(o,&object_list);
- Vector3 center(0,0,0);
- transformVert(center, o);
- objects.push_back(new Sphere(center,1,o,1));
- index_to_obj[1] = o;
+// o=newSphere(.05,.95,.35,.25,1,.25,.25,0.6,0.8,6);
+// Scale(o,1,1,1);
+// RotateY(o,PI/2);
+// Translate(o,-1.45,1.1,3.5);
+// invert(&o->T[0][0],&o->Tinv[0][0]);
+// o->texImg = readPPMimage(FLOOR_PATH);
+// insertObject(o,&object_list);
+// Vector3 center(0,0,0);
+// transformVert(center, o);
+// objects.push_back(new Sphere(center,1,o,1));
+// index_to_obj[1] = o;
+// obj_to_index[o] = 1;
+
 //
 // o=newSphere(.05,.95,.95,.05,.75,.95,.55,1,1,6);
 // Scale(o,.5,2.0,1.0);
@@ -141,37 +147,60 @@ index_to_obj[0] = o;
 // objects.push_back(new Sphere(center,3,o,2));
 // index_to_obj[2] = o;
 // Insert a single point light source.
-p.px=0;
+p.px=10;
 p.py=15.5;
-p.pz=-5.5;
+p.pz=-10;
 p.pw=1;
-l=newPLS(&p,.65,.65,.65);
+l=newPLS(&p,.85,.85,.85);
 insertPLS(l,&light_list);
 
-//  vector<uint32_t> faces;
-//  vector<float> verts;
-//  read_ply_file(MESH_PATH, verts, faces);
-//  int index = 2;
-//  for (int i = 0; i < faces.size(); i += 3)
-//  {
-//     struct object3D *o = newTriangle(.05,.85,.55,.45,0,0,0,1,1,6);
-//     Scale(o,0.05,0.05,0.05);
-//     RotateZ(o,-0.05*PI);
-//     RotateY(o,0.3*PI);
-//     Translate(o,0,-1.5,8);
-//     invert(&o->T[0][0],&o->Tinv[0][0]);
-//     insertObject(o, &object_list);
-//     Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
-//     Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
-//     Vector3 v3(verts[faces[i+2]*3], verts[faces[i+2]*3+1], verts[faces[i+2]*3+2]);
-//
-//     transformVert(v1, o);
-//     transformVert(v2, o);
-//     transformVert(v3, o);
-//     objects.push_back(new Triangle(v1, v2, v3, index));
-//     index_to_obj[index] = o;
-//     index++;
-//  }
+  vector<uint32_t> faces;
+  vector<float> verts;
+  read_ply_file(MESH_PATH, verts, faces);
+  int index = 1;
+  for (int i = 0; i < faces.size(); i += 3)
+  {
+     struct object3D *o = newTriangle(.05,.85,.55,.55,0,0,0,1,1,6);
+     Scale(o,0.05,0.05,0.05);
+     RotateZ(o, -0.005*PI);
+     RotateY(o,0.2*PI);
+     Translate(o,-6,-3.7,13);
+     invert(&o->T[0][0],&o->Tinv[0][0]);
+     insertObject(o, &object_list);
+     Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
+     Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
+     Vector3 v3(verts[faces[i+2]*3], verts[faces[i+2]*3+1], verts[faces[i+2]*3+2]);
+
+     transformVert(v1, o);
+     transformVert(v2, o);
+     transformVert(v3, o);
+     objects.push_back(new Triangle(v1, v2, v3, index));
+     index_to_obj[index] = o;
+     obj_to_index[o] = index;
+     index++;
+  }
+
+  for (int i = 0; i < faces.size(); i += 3)
+  {
+     struct object3D *o = newTriangle(.05,.85,.55,.35,1,.25,.25,1,1,6);
+     Scale(o,0.05,0.05,0.05);
+     RotateZ(o, 0.03*PI);
+     RotateY(o,1.2*PI);
+     Translate(o, 5,-5.3,5);
+     invert(&o->T[0][0],&o->Tinv[0][0]);
+     insertObject(o, &object_list);
+     Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
+     Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
+     Vector3 v3(verts[faces[i+2]*3], verts[faces[i+2]*3+1], verts[faces[i+2]*3+2]);
+
+     transformVert(v1, o);
+     transformVert(v2, o);
+     transformVert(v3, o);
+     objects.push_back(new Triangle(v1, v2, v3, index));
+     index_to_obj[index] = o;
+     obj_to_index[o] = index;
+     index++;
+  }
 
  bvh = new BVH(&objects);
 
@@ -196,7 +225,7 @@ insertPLS(l,&light_list);
   double sampleBoundary = areaBoundary / (double)sample_num;
   double lambda = 0;
   double dummy_value;
-  struct object3D *dummy_obj;
+  struct object3D *dummy_obj = NULL;
   struct point3D dummy_point;
   /* variable to calculate and sotre colours */
   colourRGB accumulated_colour;
@@ -373,23 +402,23 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // Loop through each light source
  struct pointLS* lightPtr = light_list;
  while (lightPtr) {
-    //areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 4);
-     Vector3 Lo(lightPtr->p0.px, lightPtr->p0.py, lightPtr->p0.pz);
-     Vector3 P(p->px, p->py, p->pz);
-     Vector3 D = Lo - P;
-     struct point3D ray_d;
-     ray_d.px = D.x, ray_d.py = D.y, ray_d.pz = D.z, ray_d.pw = 0;
-     struct ray3D* testRay = newRay(p, &ray_d);
-     double lambda, dummy_value;
-     struct point3D dummy_point;
-     struct object3D* dummy_obj;
-
-     findFirstHit(testRay, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
-     free(testRay);
-     if (lambda > 0) {}
-     else {
-       phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
-     }
+    areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 4);
+//     Vector3 Lo(lightPtr->p0.px, lightPtr->p0.py, lightPtr->p0.pz);
+//     Vector3 P(p->px, p->py, p->pz);
+//     Vector3 D = Lo - P;
+//     struct point3D ray_d;
+//     ray_d.px = D.x, ray_d.py = D.y, ray_d.pz = D.z, ray_d.pw = 0;
+//     struct ray3D* testRay = newRay(p, &ray_d);
+//     double lambda, dummy_value;
+//     struct point3D dummy_point;
+//     struct object3D* dummy_obj = NULL;
+//
+//     findFirstHit(testRay, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+//     free(testRay);
+//     if (lambda > 0) {}
+//     else {
+//       phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
+//     }
     lightPtr = lightPtr->next;
  }
      // reflection ray
@@ -465,7 +494,8 @@ void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct 
   IntersectionInfo I;
   *lambda = -1;
   *obj = NULL;
-  bool hit = bvh->getIntersection(rayBVH, &I, Os, occlusion);
+  int index = Os == NULL ? -1 : obj_to_index[Os];
+  bool hit = bvh->getIntersection(rayBVH, &I, index, occlusion);
   if (!hit) {
     return;
   } else {
@@ -573,7 +603,7 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
     }
     else
     {
-      double factor = 1.5;
+      double factor = 2.0;
       if (depth == 1) {
         double R, G, B;
         int index;
@@ -662,6 +692,7 @@ int main(int argc, char *argv[])
  struct image *im;	// Will hold the raytraced image
  struct view *cam;	// Camera and view for this scene
  int sx;		// Size of the raytraced image
+ int sy;		// Size of the raytraced image
  int antialiasing;	// Flag to determine whether antialiaing is enabled or disabled
  char output_name[1024];	// Name of the output file for the raytraced .ppm image
  struct point3D e;		// Camera view parameters 'e', 'g', and 'up'
@@ -676,10 +707,10 @@ int main(int argc, char *argv[])
  int i,j;			// Counters for pixel coordinates
  unsigned char *rgbIm;
 
- if (argc<5)
+ if (argc<6)
  {
   fprintf(stderr,"RayTracer: Can not parse input parameters\n");
-  fprintf(stderr,"USAGE: RayTracer size rec_depth antialias output_name\n");
+  fprintf(stderr,"USAGE: RayTracer size_x size_y rec_depth antialias output_name\n");
   fprintf(stderr,"   size = Image size (both along x and y)\n");
   fprintf(stderr,"   rec_depth = Recursion depth\n");
   fprintf(stderr,"   antialias = A single digit, 0 disables antialiasing. Anything else enables antialiasing\n");
@@ -687,11 +718,12 @@ int main(int argc, char *argv[])
   exit(0);
  }
  sx=atoi(argv[1]);
- MAX_DEPTH=atoi(argv[2]);
- if (atoi(argv[3])==0) antialiasing=0; else antialiasing=1;
- strcpy(&output_name[0],argv[4]);
+ sy=atoi(argv[2]);
+ MAX_DEPTH=atoi(argv[3]);
+ if (atoi(argv[4])==0) antialiasing=0; else antialiasing=1;
+ strcpy(&output_name[0],argv[5]);
 
- fprintf(stderr,"Rendering image at %d x %d\n",sx,sx);
+ fprintf(stderr,"Rendering image at %d x %d\n",sx,sy);
  fprintf(stderr,"Recursion depth = %d\n",MAX_DEPTH);
  if (!antialiasing) fprintf(stderr,"Antialising is off\n");
  else fprintf(stderr,"Antialising is on\n");
@@ -701,7 +733,7 @@ int main(int argc, char *argv[])
  light_list=NULL;
 
  // Allocate memory for the new image
- im=newImage(sx, sx);
+ im=newImage(sx, sy);
  if (!im)
  {
   fprintf(stderr,"Unable to allocate memory for raytraced image\n");
@@ -734,7 +766,7 @@ int main(int argc, char *argv[])
  // Camera center is at (0,0,-1)
  e.px=0;
  e.py=0;
- e.pz=-3;
+ e.pz=-8;
  e.pw=1;
 
  // To define the gaze vector, we choose a point 'pc' in the scene that
@@ -778,7 +810,7 @@ int main(int argc, char *argv[])
  //        pixel.
  //////////////////////////////////////////////////////
  du=cam->wsize/(sx-1);		// du and dv. In the notes in terms of wl and wr, wt and wb,
- dv=-cam->wsize/(sx-1);		// here we use wl, wt, and wsize. du=dv since the image is
+ dv=-cam->wsize/(sy-1);		// here we use wl, wt, and wsize. du=dv since the image is
 				// and dv is negative since y increases downward in pixel
 				// coordinates and upward in camera coordinates.
 
@@ -795,8 +827,8 @@ int main(int argc, char *argv[])
 
 
  fprintf(stderr,"Rendering row: ");
- #pragma omp parallel for private(i)
- for (j=0;j<sx;j++)		// For each of the pixels in the image
+ //#pragma omp parallel for private(i)
+ for (j=0;j<sy;j++)		// For each of the pixels in the image
  {
   //fprintf(stderr,"%d/%d, ",j,sx);
   for (i=0;i<sx;i++)
@@ -815,7 +847,7 @@ int main(int argc, char *argv[])
     col_thread.R = col_thread.G = col_thread.B = 0;
 
     if (antialiasing) {
-      add_antialiasing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f), 3, du, &col_thread);
+      add_antialiasing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f), 5, du, &col_thread);
     }
     else rayTrace(ray_thread, 1, &col_thread, NULL);
     *(rgbIm + 3 * (j * sx  + i)) = col_thread.R * 255 > 255 ? 255 : col_thread.R * 255;

@@ -28,7 +28,7 @@ class BVH {
 
   public:
   BVH(std::vector<Object*>* objects, uint32_t leafSize=4);
-  bool getIntersection(const Ray& ray, IntersectionInfo *intersection, const Object* Os, bool occlusion) const ;
+  bool getIntersection(const Ray& ray, IntersectionInfo *intersection, int index, bool occlusion) const ;
 
   ~BVH();
 };

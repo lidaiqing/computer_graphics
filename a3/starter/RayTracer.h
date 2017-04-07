@@ -27,9 +27,9 @@
 #define NEG_Y_PATH "texture/stardown.ppm"
 #define POS_Z_PATH "texture/starfront.ppm"
 #define NEG_Z_PATH "texture/starback.ppm"
-#define MESH_PATH "model/xyzrgb_dragon.ply"
+#define MESH_PATH "model/dragon.ply"
 #define FLOOR_PATH "texture/floor.ppm"
-
+#define SKIN_PATH "texture/gold.ppm"
 /* The structure below is used to hold a single RGB image */
 struct image{
 	void *rgbdata;
@@ -124,7 +124,7 @@ struct object3D{
 				// transparent object and refraction rays
 				// should be implemented
 	double  r_index;		// Index of refraction
-        double  shinyness;	// Exponent for the Phong specular component
+    double  shinyness;	// Exponent for the Phong specular component
 	int 	frontAndBack;	// Flag to indicate that both sides of the object
 				// should be lit.
 	int	isLightSource;	// Flag to indicate if this is an area light source
@@ -158,13 +158,13 @@ struct view{
 // Function definitions start here
 int main(int argc, char *argv[]);									// Main raytracing function.
 void buildScene(void);											// Scene set up. Defines objects and object transformations
-void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, const Object3D *Os);		// RayTracing routine
+void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object3D *Os);		// RayTracing routine
 void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b);
 void isBlock(struct ray3D *ray, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b);
 void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n,struct ray3D *ray, int depth, double a, double b, struct colourRGB *col);
 void phongModel(struct object3D* obj, struct pointLS* light, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double CR, double CG, double CB, struct colourRGB* col);
 void areaLighting(struct object3D* obj, struct pointLS* centre_light, struct point3D *p, struct point3D *n,struct ray3D *ray, int depth, double R, double G, double B, struct colourRGB* col, int sample_num);
 void add_antialiasing(point3D eye,double x,double y,double z,int multiplier, double pixel_boundary, colourRGB *col);
-void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, Object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b);
+void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b);
 
 #endif
