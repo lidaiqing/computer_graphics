@@ -359,13 +359,18 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
     }
 
     *lambda=min((-coe_b-(double)sqrt(under_root))/(2*coe_a),(-coe_b+(double)sqrt(under_root))/(2*coe_a));
-     if(*lambda<0)
+
+     if(((-coe_b-(double)sqrt(under_root))/(2*coe_a))<0&&((-coe_b-(double)sqrt(under_root))/(2*coe_a))<0)
      {
        free(transformed_ray);
        free(e_minus_c);
        free(intersection);
        *lambda  = -1;
        return;
+     }
+     else if(((-coe_b-(double)sqrt(under_root))/(2*coe_a))<0)
+     {
+      *lambda=(-coe_b+(double)sqrt(under_root))/(2*coe_a);
      }
 
  /* find the point this ray intersect on the sphere*/

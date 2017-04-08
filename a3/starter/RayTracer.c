@@ -135,17 +135,8 @@ obj_to_index[o] = 0;
 // index_to_obj[1] = o;
 // obj_to_index[o] = 1;
 
-//
-// o=newSphere(.05,.95,.95,.05,.75,.95,.55,1,1,6);
-// Scale(o,.5,2.0,1.0);
-// RotateZ(o,PI/1.5);
-// Translate(o,1.75,1.25,5.0);
-// invert(&o->T[0][0],&o->Tinv[0][0]);
-// insertObject(o,&object_list);
-//
-// transformVert(center, o);
-// objects.push_back(new Sphere(center,3,o,2));
-// index_to_obj[2] = o;
+
+
 // Insert a single point light source.
 p.px=10;
 p.py=15.5;
@@ -153,6 +144,54 @@ p.pz=-10;
 p.pw=1;
 l=newPLS(&p,.85,.85,.85);
 insertPLS(l,&light_list);
+   /* Centre sphere */
+   o=newSphere(.05,.95,.95,.05,.75,.95,.55,1,1,6);
+   Scale(o,1.4,1.4,1.4);
+   Translate(o,-6,-3.7,13);
+
+   Translate(o,0,0,-7);
+   Translate(o,6,0,0);
+   Translate(o,0,6,0);
+
+   invert(&o->T[0][0],&o->Tinv[0][0]);
+   insertObject(o,&object_list);
+   Vector3 center(0,0,0);
+   transformVert(center, o);
+   objects.push_back(new Sphere(center,3,o,2));
+   index_to_obj[2] = o;
+   obj_to_index[o] = 2;
+
+     /* Near sphere */
+   o=newSphere(.05,.55,.55,.5,.75,.95,.55,0.5,0.5,1);
+   Scale(o,1,1,1);
+   Translate(o,-6,-3.7,13);
+
+   Translate(o,4,-1.9,-6);
+
+   Vector3 center2(0,0,0);
+   invert(&o->T[0][0],&o->Tinv[0][0]);
+   //o->texImg = readPPMimage("texture/sky_up.ppm");
+   insertObject(o,&object_list);
+   transformVert(center2, o);
+   objects.push_back(new Sphere(center2,3,o,2));
+   index_to_obj[3] = o;
+   obj_to_index[o] = 3;
+
+     /* Far sphere */
+   o=newSphere(.05,.95,.95,.05,.75,.95,.55,1,5,6);
+   Scale(o,1.1,1.1,1.1);
+   Translate(o,-6,-3.7,13);
+
+   Translate(o,14,-1.6,-5);
+
+   Vector3 center3(0,0,0);
+   invert(&o->T[0][0],&o->Tinv[0][0]);
+   o->texImg = readPPMimage(FLOOR_PATH);
+   insertObject(o,&object_list);
+   transformVert(center3, o);
+   objects.push_back(new Sphere(center3,3,o,2));
+   index_to_obj[4] = o;
+   obj_to_index[o] = 4;
 
   vector<uint32_t> faces;
   vector<float> verts;
@@ -162,8 +201,12 @@ insertPLS(l,&light_list);
   {
      struct object3D *o = newTriangle(.05,.85,.55,.55,0,0,0,1,1,6);
      Scale(o,0.05,0.05,0.05);
-     RotateZ(o, -0.005*PI);
+     RotateZ(o, 0.03*PI);
      RotateY(o,0.2*PI);
+
+     RotateZ(o,-0.02*PI);
+     RotateX(o,-0.03*PI);
+
      Translate(o,-6,-3.7,13);
      invert(&o->T[0][0],&o->Tinv[0][0]);
      insertObject(o, &object_list);
