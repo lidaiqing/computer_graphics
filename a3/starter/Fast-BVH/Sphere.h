@@ -32,22 +32,43 @@ struct Sphere : public Object {
     old_obj->intersect(old_obj, old_ray, &lambda, &p, &n, &a, &b);
     free(old_ray);
     if (lambda < 0) return false;
+//    Vector3 s = center - ray.o;
+//    Vector3 D(ray.d.x, ray.d.y, ray.d.z);
+//    normalize(D);
+//    float sd = s * D;
+//    float ss = s * s;
+//
+//    // Compute discriminant
+//    float disc = sd*sd - ss + r2;
+//
+//    // Complex values: No intersection
+//    if( disc < 0.f ) return false;
+//
+//    // Assume we are not in a sphere... The first hit is the lesser valued
+//    I->object = this;
+//    I->t = (sd - sqrt(disc));
+//    I->hit = ray.o + I->t * D;
+//    I->normal = normalize(I->hit - center);
+//    return true;
     I->object = this;
     I->t = lambda;
-    I->hit = Vector3((float)p.px, (float)p.py, (float)p.pz);
+    Vector3 hitP(p.px, p.py, p.pz);
+    I->hit = hitP;
     I->u = a;
     I->v = b;
+    //std::cout << "u: " << I->u << "v: " << I->v << std::endl;
     Vector3 normal((float)n.px, (float)n.py, (float)n.pz);
     I->normal = normal;
     return true;
   }
 
   Vector3 getNormal(const IntersectionInfo& I) const {
-    return I.normal;
+     return I.normal;
   }
 
   BBox getBBox() const {
     return BBox(vmin, vmax);
+    //return BBox(center-Vector3(r,r,r), center+Vector3(r,r,r));
   }
 
   Vector3 getCentroid() const {

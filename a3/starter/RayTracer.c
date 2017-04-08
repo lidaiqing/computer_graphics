@@ -157,12 +157,12 @@ insertPLS(l,&light_list);
    insertObject(o,&object_list);
    Vector3 center(0,0,0);
    transformVert(center, o);
-   objects.push_back(new Sphere(center,3,o,2));
-   index_to_obj[2] = o;
-   obj_to_index[o] = 2;
+   objects.push_back(new Sphere(center,1.4,o,2));
+   index_to_obj[1] = o;
+   obj_to_index[o] = 1;
 
      /* Near sphere */
-   o=newSphere(.05,.55,.55,.5,.75,.95,.55,0.5,0.5,1);
+   o=newSphere(.05,.05,.05,.05,1,1,1,1,1,6);
    Scale(o,1,1,1);
    Translate(o,-6,-3.7,13);
 
@@ -173,15 +173,14 @@ insertPLS(l,&light_list);
    //o->texImg = readPPMimage("texture/sky_up.ppm");
    insertObject(o,&object_list);
    transformVert(center2, o);
-   objects.push_back(new Sphere(center2,3,o,2));
-   index_to_obj[3] = o;
-   obj_to_index[o] = 3;
+   objects.push_back(new Sphere(center2,2,o,3));
+   index_to_obj[2] = o;
+   obj_to_index[o] = 2;
 
      /* Far sphere */
-   o=newSphere(.05,.95,.95,.05,.75,.95,.55,1,5,6);
+   o=newSphere(.05,.75,.75,.55,.55,.8,.75,1,1,2);
    Scale(o,1.1,1.1,1.1);
    Translate(o,-6,-3.7,13);
-
    Translate(o,14,-1.6,-5);
 
    Vector3 center3(0,0,0);
@@ -189,9 +188,10 @@ insertPLS(l,&light_list);
    o->texImg = readPPMimage(FLOOR_PATH);
    insertObject(o,&object_list);
    transformVert(center3, o);
-   objects.push_back(new Sphere(center3,3,o,2));
-   index_to_obj[4] = o;
-   obj_to_index[o] = 4;
+   objects.push_back(new Sphere(center3,1.1,o,4));
+   index_to_obj[3] = o;
+   obj_to_index[o] = 3;
+
 
   vector<uint32_t> faces;
   vector<float> verts;
@@ -319,13 +319,12 @@ insertPLS(l,&light_list);
         normalize(&changed_direction);
         ray3D *test_ray = newRay(p, &changed_direction);
       /* test if the altered ray can reach this point */
-        findFirstHit_BVH(test_ray, true, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+        findFirstHit_BVH(test_ray, false, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
         //findFirstHit(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
         free(test_ray);
 
         if (lambda > 0) {
           // do not add contribute to color
-          return;
         } else {
 	          struct pointLS *sample_light=(struct pointLS *)malloc(sizeof(struct pointLS));
 	          sample_light->col.R = centre_light->col.R;
@@ -445,25 +444,29 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // Loop through each light source
  struct pointLS* lightPtr = light_list;
  while (lightPtr) {
-    areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 4);
-//     Vector3 Lo(lightPtr->p0.px, lightPtr->p0.py, lightPtr->p0.pz);
-//     Vector3 P(p->px, p->py, p->pz);
-//     Vector3 D = Lo - P;
-//     struct point3D ray_d;
-//     ray_d.px = D.x, ray_d.py = D.y, ray_d.pz = D.z, ray_d.pw = 0;
-//     struct ray3D* testRay = newRay(p, &ray_d);
-//     double lambda, dummy_value;
-//     struct point3D dummy_point;
-//     struct object3D* dummy_obj = NULL;
-//
-//     findFirstHit(testRay, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
-//     free(testRay);
-//     if (lambda > 0) {}
-//     else {
-//       phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
-//     }
+    //areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 4);
+     Vector3 Lo(lightPtr->p0.px, lightPtr->p0.py, lightPtr->p0.pz);
+     Vector3 P(p->px, p->py, p->pz);
+     Vector3 D = Lo - P;
+     struct point3D ray_d;
+     ray_d.px = D.x, ray_d.py = D.y, ray_d.pz = D.z, ray_d.pw = 0;
+     struct ray3D* testRay = newRay(p, &ray_d);
+     double lambda, dummy_value;
+     struct point3D dummy_point;
+     struct object3D* dummy_obj = NULL;
+
+     findFirstHit_BVH(testRay, false, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+     free(testRay);
+     if (lambda > 0) {}
+     else {
+        if (obj->intersect == sphereIntersect) std::cout<<"here"<<std::endl;
+       phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
+     }
     lightPtr = lightPtr->next;
  }
+    col->R += tmp_col.R;
+    col->G += tmp_col.G;
+    col->B += tmp_col.B;
      // reflection ray
     struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
     struct colourRGB reflectedCol;
@@ -485,9 +488,9 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
    refractedCol.R *= obj->alb.rg;
    refractedCol.G *= obj->alb.rg;
    refractedCol.B *= obj->alb.rg;
-   col->R += (tmp_col.R + reflectedCol.R + refractedCol.R);
-   col->G += (tmp_col.G + reflectedCol.G + refractedCol.G);
-   col->B += (tmp_col.B + reflectedCol.B + refractedCol.B);
+   col->R += (reflectedCol.R + refractedCol.R);
+   col->G += (reflectedCol.G + refractedCol.G);
+   col->B += (reflectedCol.B + refractedCol.B);
 
  return;
 
@@ -531,7 +534,7 @@ void findFirstHit_BVH(struct ray3D *ray, bool occlusion, double *lambda, struct 
   //wrap BVH method
   Vector3 ray_o((float)ray->p0.px, (float)ray->p0.py, (float)ray->p0.pz);
   Vector3 ray_d((float)ray->d.px, (float)ray->d.py, (float)ray->d.pz);
-  //ray_d = normalize(ray_d);
+  ray_d = normalize(ray_d);
   Ray rayBVH(ray_o, ray_d);
   //std::cout<< "x: " << rayBVH.d.x << " y: " << rayBVH.d.y << " z:" << rayBVH.d.z << std::endl;
   IntersectionInfo I;
