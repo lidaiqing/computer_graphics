@@ -205,6 +205,7 @@ struct object3D *newPlane(double ra, double rd, double rs, double rg, double r, 
   plane->textureMap=&texMap;
   plane->frontAndBack=1;
   plane->isLightSource=0;
+  plane->identity=1;
  }
  return(plane);
 }
@@ -243,6 +244,7 @@ struct object3D *newSphere(double ra, double rd, double rs, double rg, double r,
   sphere->textureMap=&texMap;
   sphere->frontAndBack=0;
   sphere->isLightSource=0;
+  sphere->identity=0;
  }
  return(sphere);
 }
@@ -433,6 +435,12 @@ double under_root=coe_b*coe_b-(double)4*coe_a*coe_c;
   }
     *a=phi/3.141592;
     *b=theta/((double)2*3.141592);
+    
+      if(a<0||b<0)
+  {
+   std::cout<<"Error: "<<phi<<"  "<<theta<<std::endl; 
+  }
+    
 }
 
 
@@ -576,6 +584,8 @@ void texMap(struct image *img, double a, double b, double *R, double *G, double 
  //  _________>
  /////////////////////////////////////////////////
 
+  a=fabs(a) > 1 ? 0.5 : fabs(a);
+  b=fabs(b) > 1 ? 0.5 : fabs(b);
   double x_location = (double)img->sx*a;
   double y_location = (double)img->sy*b;
   double *rgbIm=(double *)img->rgbdata;
@@ -1277,7 +1287,7 @@ void cleanup(struct object3D *o_list, struct pointLS *l_list)
  while(p!=NULL)
  {
   q=p->next;
-  if (p->texImg!=NULL)
+  if (p->texImg!=NULL && p->intersect != NULL)
   {
    if (p->texImg->rgbdata!=NULL) free(p->texImg->rgbdata);
    free(p->texImg);

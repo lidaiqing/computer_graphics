@@ -30,6 +30,7 @@ struct object3D *object_list;
 struct pointLS *light_list;
 struct image *env_list[5];
 struct image *skin;
+struct image *silver;
 
 std::unordered_map<int, object3D*> index_to_obj;
 std::unordered_map<object3D*, int> obj_to_index;
@@ -92,9 +93,9 @@ void buildScene(void)
  env_list[4]=readPPMimage(POS_Z_PATH);
  env_list[5]=readPPMimage(NEG_Z_PATH);
 
- //skin = readPPMimage(SKIN_PATH);
-
- o=newPlane(.05,.75,.75,.55,.55,.8,.75,1,1,2);	// Note the plane is highly-reflective (rs=rg=.75) so we
+ skin = readPPMimage(SKIN_PATH);
+ silver = readPPMimage("texture/silver_dragon.ppm");
+ o=newPlane(.05,.75,.75,.35,.55,.8,.75,1,1,3);	// Note the plane is highly-reflective (rs=rg=.75) so we
            // should see some reflections if all is done properly.
            // Colour is close to cyan, and currently the plane is
            // completely opaque (alpha=1). The refraction index is
@@ -138,14 +139,14 @@ obj_to_index[o] = 0;
 
 
 // Insert a single point light source.
-p.px=10;
-p.py=15.5;
+p.px=5;
+p.py=10;
 p.pz=-10;
 p.pw=1;
 l=newPLS(&p,.85,.85,.85);
 insertPLS(l,&light_list);
    /* Centre sphere */
-   o=newSphere(.05,.95,.95,.05,.75,.95,.55,1,1,6);
+   o=newSphere(.05,.75,.75,.85,1,.25,.25,1,1,6);
    Scale(o,1.4,1.4,1.4);
    Translate(o,-6,-3.7,13);
 
@@ -157,49 +158,67 @@ insertPLS(l,&light_list);
    insertObject(o,&object_list);
    Vector3 center(0,0,0);
    transformVert(center, o);
-   objects.push_back(new Sphere(center,1.4,o,2));
+   objects.push_back(new Sphere(center,1.4,o,1));
    index_to_obj[1] = o;
    obj_to_index[o] = 1;
 
      /* Near sphere */
-   o=newSphere(.05,.05,.05,.05,1,1,1,1,1,6);
+   o=newSphere(.05,.01,.01,.8,1,1,1,0.2,0.5,6);
    Scale(o,1,1,1);
    Translate(o,-6,-3.7,13);
 
-   Translate(o,4,-1.9,-6);
+   Translate(o,-1,-1.4,-4);
 
    Vector3 center2(0,0,0);
    invert(&o->T[0][0],&o->Tinv[0][0]);
    //o->texImg = readPPMimage("texture/sky_up.ppm");
    insertObject(o,&object_list);
    transformVert(center2, o);
-   objects.push_back(new Sphere(center2,2,o,3));
+   objects.push_back(new Sphere(center2,2,o,2));
    index_to_obj[2] = o;
    obj_to_index[o] = 2;
+   
+   
+   
 
      /* Far sphere */
-   o=newSphere(.05,.75,.75,.55,.55,.8,.75,1,1,2);
+   o=newSphere(.05,.75,.75,.01,.55,.8,.75,1,1,2);
    Scale(o,1.1,1.1,1.1);
    Translate(o,-6,-3.7,13);
    Translate(o,14,-1.6,-5);
 
    Vector3 center3(0,0,0);
    invert(&o->T[0][0],&o->Tinv[0][0]);
-   o->texImg = readPPMimage(FLOOR_PATH);
+   o->texImg = readPPMimage("golden_dragon.ppm");
    insertObject(o,&object_list);
    transformVert(center3, o);
-   objects.push_back(new Sphere(center3,1.1,o,4));
+   objects.push_back(new Sphere(center3,1.1,o,3));
    index_to_obj[3] = o;
    obj_to_index[o] = 3;
 
+   /* Corner */
+   o=newSphere(.05,.8,.8,.05,1,1,1,1,1,6);
+   Scale(o,1.25,1.25,1.25);
+   Translate(o,-6,-1,14);
+
+   Translate(o,-2.3,-1.7,6.5);
+
+   Vector3 center4(0,0,0);
+   invert(&o->T[0][0],&o->Tinv[0][0]);
+   o->texImg = readPPMimage(FLOOR_PATH);
+   insertObject(o,&object_list);
+   transformVert(center4, o);
+   objects.push_back(new Sphere(center4,1.2,o,4));
+   index_to_obj[4] = o;
+   obj_to_index[o] = 4;
 
   vector<uint32_t> faces;
   vector<float> verts;
   read_ply_file(MESH_PATH, verts, faces);
-  int index = 1;
+  int index = 5;
   for (int i = 0; i < faces.size(); i += 3)
   {
-     struct object3D *o = newTriangle(.05,.85,.55,.55,0,0,0,1,1,6);
+     struct object3D *o = newTriangle(.05,.85,.65,.35,0,0,0,1,1,6);
      Scale(o,0.05,0.05,0.05);
      RotateZ(o, 0.03*PI);
      RotateY(o,0.2*PI);
@@ -209,6 +228,7 @@ insertPLS(l,&light_list);
 
      Translate(o,-6,-3.7,13);
      invert(&o->T[0][0],&o->Tinv[0][0]);
+     o->texImg = skin;
      insertObject(o, &object_list);
      Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
      Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
@@ -225,12 +245,13 @@ insertPLS(l,&light_list);
 
   for (int i = 0; i < faces.size(); i += 3)
   {
-     struct object3D *o = newTriangle(.05,.85,.55,.35,1,.25,.25,1,1,6);
+     struct object3D *o = newTriangle(.05,.85,.65,.35,0,0,0,1,1,6);
      Scale(o,0.05,0.05,0.05);
      RotateZ(o, 0.03*PI);
      RotateY(o,1.2*PI);
      Translate(o, 5,-5.3,5);
      invert(&o->T[0][0],&o->Tinv[0][0]);
+     o->texImg = silver;
      insertObject(o, &object_list);
      Vector3 v1(verts[faces[i]*3], verts[faces[i]*3+1], verts[faces[i]*3+2]);
      Vector3 v2(verts[faces[i+1]*3], verts[faces[i+1]*3+1], verts[faces[i+1]*3+2]);
@@ -321,10 +342,14 @@ insertPLS(l,&light_list);
       /* test if the altered ray can reach this point */
         findFirstHit_BVH(test_ray, false, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
         //findFirstHit(test_ray, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
-        free(test_ray);
 
+        cur_colour.R = 0, cur_colour.G = 0, cur_colour.B = 0;
         if (lambda > 0) {
           // do not add contribute to color
+          if (dummy_obj->alpha < 1.0) rayTrace(test_ray, depth, &cur_colour, obj);
+          cur_colour.R *= 0.01;
+          cur_colour.G *= 0.01;
+          cur_colour.B *= 0.01;
         } else {
 	          struct pointLS *sample_light=(struct pointLS *)malloc(sizeof(struct pointLS));
 	          sample_light->col.R = centre_light->col.R;
@@ -334,13 +359,15 @@ insertPLS(l,&light_list);
 	          sample_light->p0.py = origin.py;
 	          sample_light->p0.pz = origin.pz;
 	          sample_light->next = NULL;
-            cur_colour.R = 0, cur_colour.G = 0, cur_colour.B = 0;
+
             phongModel(obj, sample_light, p, n, ray, depth, R, G, B, &cur_colour);
 	          free(sample_light);
-            accumulated_colour.R += cur_colour.R;
-            accumulated_colour.G += cur_colour.G;
-            accumulated_colour.B += cur_colour.B;
+
         }
+        accumulated_colour.R += cur_colour.R;
+        accumulated_colour.G += cur_colour.G;
+        accumulated_colour.B += cur_colour.B;
+        free(test_ray);
       }
   }
 
@@ -444,29 +471,30 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
  // Loop through each light source
  struct pointLS* lightPtr = light_list;
  while (lightPtr) {
-    //areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 4);
-     Vector3 Lo(lightPtr->p0.px, lightPtr->p0.py, lightPtr->p0.pz);
-     Vector3 P(p->px, p->py, p->pz);
-     Vector3 D = Lo - P;
-     struct point3D ray_d;
-     ray_d.px = D.x, ray_d.py = D.y, ray_d.pz = D.z, ray_d.pw = 0;
-     struct ray3D* testRay = newRay(p, &ray_d);
-     double lambda, dummy_value;
-     struct point3D dummy_point;
-     struct object3D* dummy_obj = NULL;
-
-     findFirstHit_BVH(testRay, false, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
-     free(testRay);
-     if (lambda > 0) {}
-     else {
-        if (obj->intersect == sphereIntersect) std::cout<<"here"<<std::endl;
-       phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
-     }
+    areaLighting(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col, 4);
+//     Vector3 Lo(lightPtr->p0.px, lightPtr->p0.py, lightPtr->p0.pz);
+//     Vector3 P(p->px, p->py, p->pz);
+//     Vector3 D = Lo - P;
+//     struct point3D ray_d;
+//     ray_d.px = D.x, ray_d.py = D.y, ray_d.pz = D.z, ray_d.pw = 0;
+//     struct ray3D* testRay = newRay(p, &ray_d);
+//     double lambda, dummy_value;
+//     struct point3D dummy_point;
+//     struct object3D* dummy_obj = NULL;
+//
+//     findFirstHit_BVH(testRay, false, &lambda, obj, &dummy_obj, &dummy_point, &dummy_point, &dummy_value, &dummy_value);
+//     free(testRay);
+//     if (lambda > 0) {}
+//     else {
+//
+//       phongModel(obj, lightPtr, p, n, ray, depth, R, G, B, &tmp_col);
+//     }
     lightPtr = lightPtr->next;
  }
     col->R += tmp_col.R;
     col->G += tmp_col.G;
     col->B += tmp_col.B;
+    
      // reflection ray
     struct ray3D* reflectedRay = getReflectionRay(ray, p, n);
     struct colourRGB reflectedCol;
@@ -488,6 +516,9 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
    refractedCol.R *= obj->alb.rg;
    refractedCol.G *= obj->alb.rg;
    refractedCol.B *= obj->alb.rg;
+
+
+
    col->R += (reflectedCol.R + refractedCol.R);
    col->G += (reflectedCol.G + refractedCol.G);
    col->B += (reflectedCol.B + refractedCol.B);
@@ -649,13 +680,13 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
     }
     else
     {
-      double factor = 2.0;
+      double factor = 1.8;
       if (depth == 1) {
         double R, G, B;
         int index;
         convert_xyz_to_cube_uv(ray->p0.px + factor * ray->d.px, ray->p0.py + factor * ray->d.py, ray->p0.pz + factor * ray->d.pz, &index, &a, &b);
         texMap(env_list[index], a, b, &R, &G, &B);
-        col->R = R, col->G = G, col->B = B;
+        col->R = +R, col->G = +G, col->B = +B;
         return;
       } else {
         double R, G, B;
@@ -663,6 +694,7 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
         convert_xyz_to_cube_uv(ray->p0.px + factor * ray->d.px, ray->p0.py + factor * ray->d.py, ray->p0.pz + factor * ray->d.pz, &index, &a, &b);
         texMap(env_list[index], a, b, &R, &G, &B);
         col->R += R, col->G += G, col->B += B;
+        return;
       }
     }
 
@@ -873,7 +905,7 @@ int main(int argc, char *argv[])
 
 
  fprintf(stderr,"Rendering row: ");
- //#pragma omp parallel for private(i)
+ #pragma omp parallel for private(i)
  for (j=0;j<sy;j++)		// For each of the pixels in the image
  {
   //fprintf(stderr,"%d/%d, ",j,sx);
@@ -893,9 +925,10 @@ int main(int argc, char *argv[])
     col_thread.R = col_thread.G = col_thread.B = 0;
 
     if (antialiasing) {
-      add_antialiasing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f), 5, du, &col_thread);
+      add_antialiasing(cam->e,(-cam->wsize/2)+i*(du)+0.5*(du),(cam->wsize/2)+j*(dv)+0.5*(dv),(-cam->f), 4, du, &col_thread);
     }
     else rayTrace(ray_thread, 1, &col_thread, NULL);
+
     *(rgbIm + 3 * (j * sx  + i)) = col_thread.R * 255 > 255 ? 255 : col_thread.R * 255;
     *(rgbIm + 3 * (j * sx  + i) + 1) = col_thread.G * 255 > 255 ? 255 : col_thread.G * 255;
     *(rgbIm + 3 * (j * sx  + i) + 2) = col_thread.B * 255 > 255 ? 255 : col_thread.B * 255;
@@ -908,7 +941,10 @@ int main(int argc, char *argv[])
 
  // Output rendered image
  imageOutput(im,output_name);
-
+ deleteImage(skin);
+ deleteImage(silver);
+ for(int i = 0; i < 6; i++)
+	deleteImage(env_list[i]);
  // Exit section. Clean up and return.
  cleanup(object_list, light_list);		// Object and light lists
  deleteImage(im);				// Rendered image

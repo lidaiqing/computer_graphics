@@ -2,10 +2,10 @@ CSC418/2504 - Winter 2017
 Checklist for Assignment 3
 ----------------------------------------------------------------------------------
 
-Name: 
+Name: Ruixin Huang, Daiqin Li
 
 Student ID:
-
+1001781565 , 1000795357
 -----------------------------------------------------------------------------------------
 
 A. PLEASE ANSWER THE FOLLOWING QUESTIONS (your assignment will not be graded otherwise!)
@@ -15,14 +15,14 @@ A. PLEASE ANSWER THE FOLLOWING QUESTIONS (your assignment will not be graded oth
 
    http://www.cs.brown.edu/~ls/teaching08.html
 
-   ___Yes   ___No
+   _x_Yes   ___No
 
 2. I understand that it is not okay to use code found online and represent it as my own work.
    Further, I understand that if caught with similarity software, I can be reprimanded by the
    department and will have to deal with the consequences of this.
 	
 
-   ___Yes   ___No
+  _x_Yes   ___No
 
    If you have used an external source, see 3 and report it there.
 
@@ -30,7 +30,7 @@ A. PLEASE ANSWER THE FOLLOWING QUESTIONS (your assignment will not be graded oth
    source (the penalties/grades will be assessed according to the policy stated in 
    http://www.cs.brown.edu/~ls/teaching08.html)
 
-   ___Yes   ___No
+   _x_Yes   ___No
 
 
    If you checked yes, please supply the following
@@ -51,26 +51,40 @@ B. PLACE AN (X) IN FRONT OF PORTIONS OF THE ASSIGNMENT THAT YOU COMPLETED IN FUL
    WE WILL BE ABLE TO MAKE AN ACCURATE ASSESSMENT
 
 				Completed   Partial   Not done   Mark
-[10 marks]  Ray Casting
+[10 marks]  Ray Casting             x
 
-[15 marks]  Intersection	
+[15 marks]  Intersection            x	
             for spheres
 
-[15 marks]  Intersection
+[15 marks]  Intersection            x
 	    for square
 
-[15 marks]  Normal transforms
+[15 marks]  Normal transforms       x
 
-[15 marks]  Local Phong
+[15 marks]  Local Phong             x
 
-[10 marks]  Shadows
+[10 marks]  Shadows                 x
 
-[15 marks]  Global reflection
+[15 marks]  Global reflection       x
 
-[5 marks]   Report
+[5 marks]   Report                  x
 
 [TA assigned]  Penalty marks
 
 
 Total for A3:							/100
+
+
+In a4, we finished the basic requirements which are antialiasing, area-light and a scene designed by ourselves.
+
+We further implemented texture mapping, environmental mapping, refraction, handling arbitrary surface mesh and multi-threading.
+
+Before we started the assignment we make sure we thoroughly understand the theoretical knowledge taught in class. Only after that we started reading the starter code so we could understand the purpose of each function quickly and correctly. Also we discussed within the group before writing the code to check we reach an agreement on how we transfer theoretical knowledge into practical works.
+
+The basic ideas of this assignment is straightforward but the hard part is not to make tiny mistakes and improve the performance of rendering. So working on each functionality requires extra cautious and crystal clear about what we are doing.
+
+The assignment helped me have a overview of how ray trace is implemented in industry and gives me an idea that world to model transformation can greatly improve the performance and reduce the computation complexity.
+
+The biggest challenge we faced were trying to rendering a “dragon” mash containing about 2 million triangles and thus there is no way to treat each triangle as a separate object in “findFIrsthit” To improve the performance of our rendering, we imported open source bounding box algorithm to make rendering dragon possible. The basic idea is we group triangle into hierarchy clusters and testing intersection between rays and those clusters instead.
+
 

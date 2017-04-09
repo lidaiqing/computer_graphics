@@ -28,7 +28,7 @@
 #define POS_Z_PATH "texture/starfront.ppm"
 #define NEG_Z_PATH "texture/starback.ppm"
 #define MESH_PATH "model/dragon.ply"
-#define FLOOR_PATH "texture/floor.ppm"
+#define FLOOR_PATH "texture/golden_floor.ppm"
 #define SKIN_PATH "texture/gold.ppm"
 /* The structure below is used to hold a single RGB image */
 struct image{
@@ -129,6 +129,8 @@ struct object3D{
 				// should be lit.
 	int	isLightSource;	// Flag to indicate if this is an area light source
 	struct object3D *next;	// Pointer to next entry in object linked list
+
+	int identity;
 };
 
 /* The structure below defines a point light source */

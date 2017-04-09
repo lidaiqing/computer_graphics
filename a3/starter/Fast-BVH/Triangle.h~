@@ -55,8 +55,8 @@ struct Triangle : public Object {
     double BaryV1 = ((v2.y - v3.y) * (hitP.x - v3.x) + (v3.x - v2.x) * (hitP.y - v3.y)) / ((v2.y - v3.y) * (v1.x - v3.x) + (v3.x - v2.x) * (v1.y - v3.y));
     double BaryV2 = ((v3.y - v1.y) * (hitP.x - v3.x) + (v1.x - v3.x) * (hitP.y - v3.y)) / ((v2.y - v3.y) * (v1.x - v3.x) + (v3.x - v2.x) * (v1.y - v3.y));
     double BaryV3 = 1.0 - BaryV1 - BaryV2;
-    I->u = fabs(BaryV3) > 1 ? 0,5 : fabs(BaryV3);
-    I->v = fabs(BaryV2 + BaryV3) > 1 ? 0.5 : fabs(BaryV2 + BaryV3);  
+    I->u = fabs(BaryV3 * 1);
+    I->v = fabs(BaryV2 * 1 + BaryV3 * 1);  
     return true;
   }
 
